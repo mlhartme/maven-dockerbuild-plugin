@@ -30,7 +30,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.MavenProject;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -66,8 +65,8 @@ public class Build extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}", readonly = true)
     private String buildDirectory;
 
-    @Parameter(property = "project", required = true, readonly = true)
-    private MavenProject project;
+    @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
+    private String buildFinalName;
 
     public Build() throws IOException {
         this(World.create());
@@ -292,7 +291,7 @@ public class Build extends AbstractMojo {
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(artifactPrefix)) {
                 type = arg.name.substring(artifactPrefix.length()).toLowerCase();
-                src = world.file(buildDirectory).join(project.getBuild().getFinalName() + "." + type);
+                src = world.file(buildDirectory).join(buildFinalName + "." + type);
                 src.checkFile();
                 dest = context.join(src.getName());
                 src.copyFile(dest);
