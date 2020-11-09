@@ -14,7 +14,6 @@ package net.oneandone.maven.plugins.dockerbuild;/*
  * limitations under the License.
  */
 
-import net.oneandone.stool.docker.BuildArgument;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +36,7 @@ public class BuildArgumentTest {
         assertEquals("true", v.dflt);
         v = BuildArgument.scan("Arg str");
         assertEquals("str", v.name);
-        assertEquals("", v.dflt);
+        assertNull(v.dflt);
         v = BuildArgument.scan("ARG str= a b c");
         assertEquals("str", v.name);
         assertEquals("a b c", v.dflt);

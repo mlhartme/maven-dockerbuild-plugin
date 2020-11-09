@@ -53,7 +53,7 @@ public class BuildArgument {
         idx = line.indexOf('=');
         if (idx == -1) {
             name = line;
-            dflt = "";
+            dflt = null;
         } else {
             name = line.substring(0, idx).trim();
             dflt = line.substring(idx + 1).trim();
