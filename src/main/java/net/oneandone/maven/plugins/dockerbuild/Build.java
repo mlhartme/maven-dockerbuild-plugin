@@ -15,7 +15,6 @@
  */
 package net.oneandone.maven.plugins.dockerbuild;
 
-import net.oneandone.stool.docker.BuildArgument;
 import net.oneandone.stool.docker.BuildError;
 import net.oneandone.stool.docker.Daemon;
 import net.oneandone.stool.docker.ImageInfo;
@@ -55,12 +54,6 @@ public class Build extends AbstractMojo {
             defaultValue = "contargo.server.lan/cisoops-public/${project.groupId}-${project.artifactId}") // TODO
     private final String repository;
 
-    /**
-     * Specifies the artifact to add to the Docker context.
-     */
-    @Parameter(defaultValue = "${project.build.directory}/${project.build.finalName}.war")
-    private final String artifact;
-
     /** Explicit comment to add to image */
     @Parameter(defaultValue = "")
     private final String comment;
@@ -68,6 +61,10 @@ public class Build extends AbstractMojo {
     /** Dockerfile argument */
     @Parameter
     private Map<String, String> arguments;
+
+    /** Where to build the context directory */
+    @Parameter(defaultValue = "${project.build.directory}/dockerbuild")
+    private String contextDir;
 
     public Build() throws IOException {
         this(World.create());
@@ -77,7 +74,6 @@ public class Build extends AbstractMojo {
         this.world = world;
         this.noCache = false;
         this.repository = "";
-        this.artifact = null;
         this.comment = "";
         this.arguments = new HashMap<>();
     }
@@ -93,7 +89,7 @@ public class Build extends AbstractMojo {
 
     public void build() throws IOException, MojoFailureException {
         try (Daemon daemon = Daemon.create()) {
-            build(getLog(), daemon, world.getWorking().join("target/dockerbuild"), world.file(artifact).checkFile());
+            build(daemon, world.file(contextDir));
         } catch (StatusException e) {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
@@ -131,7 +127,7 @@ public class Build extends AbstractMojo {
 
     //--
 
-    public void createContext(FileNode context, FileNode war) throws IOException {
+    public void createContext(FileNode context) throws IOException {
         FileNode template;
         FileNode destparent;
         FileNode destfile;
@@ -141,7 +137,7 @@ public class Build extends AbstractMojo {
             context.deleteTree();
         }
         context.mkdirOpt();
-        war.copyFile(context.join("app.war"));
+// TODO        war.copyFile(context.join("app.war"));
         for (FileNode srcfile : template.find("**/*")) {
             if (srcfile.isDirectory()) {
                 continue;
@@ -155,17 +151,19 @@ public class Build extends AbstractMojo {
 
     //--
 
-    public String build(Log log, Daemon daemon, FileNode war, FileNode context) throws IOException, MojoFailureException {
+    public String build(Daemon daemon, FileNode context) throws IOException, MojoFailureException {
+        Log log;
         long started;
         int tag;
         String repositoryTag;
 
+        log = getLog();
         started = System.currentTimeMillis();
         log.info("building image for " + toString());
         tag = nextTag(daemon);
         repositoryTag = repository + ":" + tag;
 
-        doBuild(log, daemon, war, context, repositoryTag, getOriginOrUnknown());
+        doBuild(log, daemon, context, repositoryTag, getOriginOrUnknown());
 
         log.info("pushing ...");
         log.info(daemon.imagePush(repositoryTag));
@@ -173,13 +171,12 @@ public class Build extends AbstractMojo {
         return repositoryTag;
     }
 
-    private void doBuild(Log log, Daemon engine, FileNode war, FileNode context, String repositoryTag, String originScm)
-            throws MojoFailureException, IOException {
+    private void doBuild(Log log, Daemon engine, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException {
         Map<String, String> buildArgs;
         StringWriter output;
         String image;
 
-        createContext(context, war);
+        createContext(context);
         buildArgs = buildArgs(BuildArgument.scan(context.join("Dockerfile")));
         output = new StringWriter();
         try {
