@@ -50,9 +50,8 @@ public class Build extends AbstractMojo {
     @Parameter(defaultValue = "false")
     private final boolean noCache;
 
-    @Parameter(property = "docker.repository",
-            defaultValue = "contargo.server.lan/cisoops-public/${project.groupId}-${project.artifactId}") // TODO
-    private final String repository;
+    @Parameter(property = "docker.image", defaultValue = "${project.groupId}-${project.artifactId}-${project.version}") // TODO
+    private final String image;
 
     /** Explicit comment to add to image */
     @Parameter(defaultValue = "")
@@ -75,7 +74,7 @@ public class Build extends AbstractMojo {
     public Build(World world) {
         this.world = world;
         this.noCache = false;
-        this.repository = "";
+        this.image = "";
         this.comment = "";
         this.arguments = new HashMap<>();
     }
@@ -135,7 +134,7 @@ public class Build extends AbstractMojo {
         FileNode destfile;
 
         template = templates().join("vanilla-war").checkDirectory(); // TODO
-        if (context.isFile()) {
+        if (context.isDirectory()) {
             context.deleteTree();
         }
         context.mkdirOpt();
@@ -155,35 +154,52 @@ public class Build extends AbstractMojo {
     public String build(Daemon daemon, FileNode context) throws IOException, MojoFailureException, MojoExecutionException {
         Log log;
         long started;
-        int tag;
         String repositoryTag;
 
         log = getLog();
         started = System.currentTimeMillis();
         log.info("building image for " + toString());
-        tag = nextTag(daemon);
-        repositoryTag = repository + ":" + tag;
 
+        repositoryTag = sanitize(image); // TODO: resolve
+        log.info("building " + repositoryTag);
         doBuild(log, daemon, context, repositoryTag, getOriginOrUnknown());
 
-        log.info("pushing ...");
-        log.info(daemon.imagePush(repositoryTag));
-        log.info("done: image " + tag + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
+        log.info("done: image " + repositoryTag + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
         return repositoryTag;
+    }
+
+    private static String sanitize(String str) {
+        StringBuilder result;
+        char c;
+
+        result = new StringBuilder(str.length());
+        for (int i = 0, max = str.length(); i < max; i++) {
+            c = str.charAt(i);
+            if (asIs(c)) {
+                result.append(c);
+            } else {
+                result.append('-');
+            }
+        }
+        return result.toString();
+    }
+
+    private static boolean asIs(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
     }
 
     private void doBuild(Log log, Daemon engine, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
         Map<String, BuildArgument> formals;
         Map<String, String> actuals;
         StringWriter output;
-        String image;
+        String id;
 
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
         output = new StringWriter();
         try {
-            image = engine.imageBuild(repositoryTag, actuals, getLabels(originScm), context, noCache, output);
+            id = engine.imageBuild(repositoryTag, actuals, getLabels(originScm), context, noCache, output);
         } catch (BuildError e) {
             log.error("build failed: " + e.error);
             log.error("build output:");
@@ -192,7 +208,7 @@ public class Build extends AbstractMojo {
         } finally {
             output.close();
         }
-        log.debug("successfully built image: " + image);
+        log.debug("build image " + id);
         log.debug(output.toString());
     }
 
@@ -214,72 +230,8 @@ public class Build extends AbstractMojo {
         }
     }
 
-    /** @return next version */
-    public int nextTag(Daemon docker) throws IOException {
-        Map<String, ImageInfo> images;
-
-        images = repositoryTags(docker.imageList());
-        return nextTag(images.keySet());
-    }
-
-    public static String tag(String repositoryTag) {
-        String result;
-        int idx;
-
-        result = repositoryTag;
-        idx = result.lastIndexOf(':');
-        if (idx == -1) {
-            throw new IllegalArgumentException(result);
-        }
-        return result.substring(idx + 1);
-    }
-
-    public static int nextTag(Collection<String> repositoryTags) {
-        String tag;
-        int number;
-        int max;
-
-        max = 0;
-        for (String repoTag : repositoryTags) {
-            tag = tag(repoTag);
-            try {
-                number = Integer.parseInt(tag);
-                if (number > max) {
-                    max = number;
-                }
-            } catch (NumberFormatException e) {
-                // fall through
-            }
-        }
-        return max + 1;
-    }
-
-    public Map<String, ImageInfo> repositoryTags(Map<String, ImageInfo> imageMap) {
-        Map<String, ImageInfo> result;
-        ImageInfo info;
-
-        result = new HashMap<>();
-        for (Map.Entry<String, ImageInfo> entry : imageMap.entrySet()) {
-            info = entry.getValue();
-            for (String repositoryTag : info.repositoryTags) {
-                if (repositoryTag.startsWith(repository + ":")) {
-                    result.put(repositoryTag, info);
-                }
-            }
-        }
-        return result;
-    }
-
-    protected static String eat(Map<String, String> arguments, String key, String dflt) {
-        String explicitValue;
-
-        explicitValue = arguments.remove(key);
-        return explicitValue != null ? explicitValue : dflt;
-    }
-
     /** compute build argument values and add artifactArguments to context. */
-    private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context)
-            throws MojoFailureException, IOException, MojoExecutionException {
+    private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context) throws MojoFailureException, IOException {
         final String artifactPrefix = "artifact";
         Map<String, String> result;
         String property;
