@@ -30,6 +30,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -62,9 +63,11 @@ public class Build extends AbstractMojo {
     @Parameter
     private Map<String, String> arguments;
 
-    /** Where to build the context directory */
-    @Parameter(defaultValue = "${project.build.directory}/dockerbuild")
-    private String contextDir;
+    @Parameter(defaultValue = "${project.build.directory}", readonly = true)
+    private String buildDirectory;
+
+    @Parameter(property = "project", required = true, readonly = true)
+    private MavenProject project;
 
     public Build() throws IOException {
         this(World.create());
@@ -87,9 +90,9 @@ public class Build extends AbstractMojo {
         }
     }
 
-    public void build() throws IOException, MojoFailureException {
+    public void build() throws IOException, MojoFailureException, MojoExecutionException {
         try (Daemon daemon = Daemon.create()) {
-            build(daemon, world.file(contextDir));
+            build(daemon, world.file(buildDirectory).join("dockerbuild"));
         } catch (StatusException e) {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
@@ -127,7 +130,7 @@ public class Build extends AbstractMojo {
 
     //--
 
-    public void createContext(FileNode context) throws IOException {
+    private void initContext(FileNode context) throws IOException {
         FileNode template;
         FileNode destparent;
         FileNode destfile;
@@ -137,7 +140,6 @@ public class Build extends AbstractMojo {
             context.deleteTree();
         }
         context.mkdirOpt();
-// TODO        war.copyFile(context.join("app.war"));
         for (FileNode srcfile : template.find("**/*")) {
             if (srcfile.isDirectory()) {
                 continue;
@@ -151,7 +153,7 @@ public class Build extends AbstractMojo {
 
     //--
 
-    public String build(Daemon daemon, FileNode context) throws IOException, MojoFailureException {
+    public String build(Daemon daemon, FileNode context) throws IOException, MojoFailureException, MojoExecutionException {
         Log log;
         long started;
         int tag;
@@ -171,17 +173,18 @@ public class Build extends AbstractMojo {
         return repositoryTag;
     }
 
-    private void doBuild(Log log, Daemon engine, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException {
-        Map<String, String> buildArgs;
+    private void doBuild(Log log, Daemon engine, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
+        Map<String, BuildArgument> formals;
+        Map<String, String> actuals;
         StringWriter output;
         String image;
 
-        createContext(context);
-        buildArgs = buildArgs(BuildArgument.scan(context.join("Dockerfile")));
+        initContext(context);
+        formals = BuildArgument.scan(context.join("Dockerfile"));
+        actuals = buildArgs(formals, context);
         output = new StringWriter();
         try {
-            image = engine.imageBuild(repositoryTag, buildArgs,
-                    getLabels(originScm, buildArgs), context, noCache, output);
+            image = engine.imageBuild(repositoryTag, actuals, getLabels(originScm), context, noCache, output);
         } catch (BuildError e) {
             log.error("build failed: " + e.error);
             log.error("build output:");
@@ -194,16 +197,13 @@ public class Build extends AbstractMojo {
         log.debug(output.toString());
     }
 
-    private Map<String, String> getLabels(String originScm, Map<String, String> buildArgs) {
+    private Map<String, String> getLabels(String originScm) {
         Map<String, String> labels;
 
         labels = new HashMap<>();
         labels.put(ImageInfo.IMAGE_LABEL_COMMENT, comment);
         labels.put(ImageInfo.IMAGE_LABEL_ORIGIN_SCM, originScm);
         labels.put(ImageInfo.IMAGE_LABEL_ORIGIN_USER, originUser());
-        for (Map.Entry<String, String> arg : buildArgs.entrySet()) {
-            labels.put(ImageInfo.IMAGE_LABEL_ARG_PREFIX + arg.getKey(), arg.getValue());
-        }
         return labels;
     }
 
@@ -278,20 +278,41 @@ public class Build extends AbstractMojo {
         return explicitValue != null ? explicitValue : dflt;
     }
 
-    private Map<String, String> buildArgs(Map<String, BuildArgument> defaults) throws MojoFailureException {
+    /** compute build argument values and add artifactArguments to context. */
+    private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context)
+            throws MojoFailureException, IOException, MojoExecutionException {
+        final String artifactPrefix = "artifact";
         Map<String, String> result;
         String property;
+        FileNode src;
+        FileNode dest;
+        String type;
 
         result = new HashMap<>();
-        for (BuildArgument arg : defaults.values()) {
-            result.put(arg.name, arg.dflt);
+        for (BuildArgument arg : formals.values()) {
+            if (arg.name.startsWith(artifactPrefix)) {
+                type = arg.name.substring(artifactPrefix.length()).toLowerCase();
+                src = world.file(buildDirectory).join(project.getBuild().getFinalName() + "." + type);
+                src.checkFile();
+                dest = context.join(src.getName());
+                src.copyFile(dest);
+                result.put(arg.name, dest.getName());
+                getLog().info("adding artifact " + dest.getName());
+            } else {
+                result.put(arg.name, arg.dflt);
+            }
         }
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
             property = entry.getKey();
             if (!result.containsKey(property)) {
-                throw new MojoFailureException("unknown build argument: " + property + "\n" + available(defaults.values()));
+                throw new MojoFailureException("unknown build argument: " + property + "\n" + available(formals.values()));
             }
             result.put(property, entry.getValue());
+        }
+        for (Map.Entry<String, String> entry : result.entrySet()) {
+            if (entry.getValue() == null) {
+                throw new MojoFailureException("mandatory argument is missing: " + entry.getKey());
+            }
         }
         return result;
     }
