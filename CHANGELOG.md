@@ -2,4 +2,5 @@
 
 ## 1.0.0 (pending)
 
-initial version; roughly "stool build" from stool 6.
+Initial version. Roughly, this is a spin-off of the "stool build" command from 
+Stool 6 https://github.com/mlhartme/stool

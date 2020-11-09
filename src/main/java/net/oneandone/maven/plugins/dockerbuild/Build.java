@@ -27,9 +27,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,35 +55,21 @@ public class Build extends AbstractMojo {
     @Parameter(defaultValue = "")
     private final String comment;
 
-    // TODO
-    private final Map<String, String> explicitArguments;
+    /** Dockerfile argument */
+    @Parameter
+    private Map<String, String> arguments;
 
-    public Build() throws IOException, MojoFailureException {
+    public Build() throws IOException {
         this(World.create());
     }
 
-    public Build(World world) throws MojoFailureException {
+    public Build(World world) {
         this.world = world;
         this.noCache = false;
         this.repository = "";
         this.artifact = null;
         this.comment = "";
-        this.explicitArguments = argument(new ArrayList()); // TODO
-    }
-
-    private static Map<String, String> argument(List<String> args) throws MojoFailureException {
-        int idx;
-        Map<String, String> result;
-
-        result = new HashMap<>();
-        for (String arg : args) {
-            idx = arg.indexOf('=');
-            if (idx == -1) {
-                throw new MojoFailureException("invalid argument: <key>=<value> expected, got " + arg);
-            }
-            result.put(arg.substring(0, idx), arg.substring(idx + 1));
-        }
-        return result;
+        this.arguments = new HashMap<>();
     }
 
     @Override
@@ -99,11 +83,11 @@ public class Build extends AbstractMojo {
     public void build() throws IOException, MojoFailureException {
         Source source;
 
-        source = new Source(getLog(), world.file(artifact).checkFile());
+        source = new Source(getLog(), world.getWorking().join("target/dockerbuild") /* TODO */, world.file(artifact).checkFile());
         try (Daemon daemon = Daemon.create()) {
-            source.build(daemon, repository, comment, noCache, explicitArguments);
+            source.build(daemon, repository, comment, noCache, arguments);
         } catch (StatusException e) {
-            throw new IOException(e.getResource() + ": " + e.getStatusLine(), e);
+            throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
     }
 

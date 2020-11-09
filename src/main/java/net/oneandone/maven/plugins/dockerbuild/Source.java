@@ -19,10 +19,6 @@ import net.oneandone.stool.docker.BuildArgument;
 import net.oneandone.stool.docker.BuildError;
 import net.oneandone.stool.docker.Daemon;
 import net.oneandone.stool.docker.ImageInfo;
-import net.oneandone.sushi.fs.DirectoryNotFoundException;
-import net.oneandone.sushi.fs.ExistsException;
-import net.oneandone.sushi.fs.Node;
-import net.oneandone.sushi.fs.SizeException;
 import net.oneandone.sushi.fs.file.FileNode;
 import net.oneandone.sushi.launcher.Launcher;
 import org.apache.maven.plugin.MojoFailureException;
@@ -35,22 +31,23 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 /** List of Apps. Represents .backstage */
 public class Source {
     private final Log log;
 
+    private final FileNode context;
     public final FileNode war;
 
-    public Source(Log log, FileNode war) {
+    public Source(Log log, FileNode context, FileNode war) {
         this.log = log;
+        this.context = context;
         this.war = war;
     }
 
     // TODO
-    public FileNode templates() throws ExistsException, DirectoryNotFoundException {
-        return war.getWorld().file(System.getenv("CISOTOOLS_HOME")).join("stool/templates-6").checkDirectory(); // TODO
+    public FileNode templates() {
+        return war.getWorld().file("/Users/mhm/Projects/bitbucket.1and1.org/cisodevenv/dockerbuild-library");
     }
 
 
@@ -77,18 +74,16 @@ public class Source {
 
     //--
 
-    public Map<String, String> implicitArguments() throws IOException {
-        return new HashMap<>(properties());
-    }
-
-    public FileNode createContext(Map<String, String> arguments) throws IOException {
+    public void createContext() throws IOException {
         FileNode template;
-        FileNode context;
         FileNode destparent;
         FileNode destfile;
 
-        template = templates().join(eat(arguments, "_template", "vanilla-war")).checkDirectory();
-        context = war.getWorld().getTemp().createTempDirectory();
+        template = templates().join("vanilla-war").checkDirectory(); // TODO
+        if (context.isFile()) {
+            context.deleteTree();
+        }
+        context.mkdirOpt();
         war.copyFile(context.join("app.war"));
         for (FileNode srcfile : template.find("**/*")) {
             if (srcfile.isDirectory()) {
@@ -99,12 +94,11 @@ public class Source {
             destparent.mkdirsOpt();
             srcfile.copy(destfile);
         }
-        return context;
     }
 
     //--
 
-    public String build(Daemon daemon, String repository, String comment, boolean noCache, Map<String, String> explicitArguments)
+    public String build(Daemon daemon, String repository, String comment, boolean noCache, Map<String, String> arguments)
             throws IOException, MojoFailureException {
         long started;
         int tag;
@@ -115,7 +109,7 @@ public class Source {
         tag = nextTag(daemon, repository);
         repositoryTag = repository + ":" + tag;
 
-        doBuild(daemon, repositoryTag, comment, noCache, getOriginOrUnknown(), explicitArguments);
+        doBuild(daemon, repositoryTag, comment, noCache, getOriginOrUnknown(), arguments);
 
         log.info("pushing ...");
         log.info(daemon.imagePush(repositoryTag));
@@ -124,17 +118,13 @@ public class Source {
     }
 
     private void doBuild(Daemon engine, String repositoryTag,
-                         String comment, boolean noCache, String originScm, Map<String, String> explicitArguments)
+                         String comment, boolean noCache, String originScm, Map<String, String> arguments)
             throws MojoFailureException, IOException {
-        Map<String, String> arguments;
         Map<String, String> buildArgs;
-        FileNode context;
         StringWriter output;
         String image;
 
-        arguments = implicitArguments();
-        arguments.putAll(explicitArguments);
-        context = createContext(arguments);
+        createContext();
         buildArgs = buildArgs(BuildArgument.scan(context.join("Dockerfile")), arguments);
         output = new StringWriter();
         try {
@@ -247,7 +237,7 @@ public class Source {
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
             property = entry.getKey();
             if (!result.containsKey(property)) {
-                throw new MojoFailureException("unknown explicit build argument: " + property + "\n" + available(defaults.values()));
+                throw new MojoFailureException("unknown build argument: " + property + "\n" + available(defaults.values()));
             }
             result.put(property, entry.getValue());
         }
@@ -265,47 +255,5 @@ public class Source {
         }
         result.append(")\n");
         return result.toString();
-    }
-
-    //--
-
-    public static final String PROPERTIES_FILE = "WEB-INF/classes/META-INF/pominfo.properties";
-    public static final String PROPERTIES_PREFIX = "stool.";
-
-    public static final String APP_ARGUMENT = "_app";
-
-    public String toString() {
-        try {
-            return "war " + war + " (" + (war.size() / (1024 * 1024)) + " mb)";
-        } catch (SizeException e) {
-            throw new IllegalStateException(e.getMessage(), e);
-        }
-    }
-
-    //--
-
-    private Map<String, String> lazyProperties = null;
-    private String lazyApp = null;
-    private Map<String, String> properties() throws IOException {
-        Node<?> node;
-        Properties all;
-
-        if (lazyProperties == null) {
-            node = war.openZip().join(PROPERTIES_FILE);
-            lazyProperties = new HashMap<>();
-            if (node.exists()) {
-                all = node.readProperties();
-                for (String property : all.stringPropertyNames()) {
-                    if (property.startsWith(PROPERTIES_PREFIX)) {
-                        lazyProperties.put(property.substring(PROPERTIES_PREFIX.length()), all.getProperty(property));
-                    }
-                }
-            }
-            lazyApp = lazyProperties.remove(APP_ARGUMENT);
-            if (lazyApp == null) {
-                lazyApp = "app";
-            }
-        }
-        return lazyProperties;
     }
 }
