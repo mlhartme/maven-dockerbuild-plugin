@@ -47,6 +47,9 @@ import java.util.Map;
 public class Build extends AbstractMojo {
     private final World world;
 
+    @Parameter(required = true)
+    private final String dockerbuild;
+
     /** Don't use Docker cache */
     @Parameter(defaultValue = "false")
     private final boolean noCache;
@@ -74,6 +77,7 @@ public class Build extends AbstractMojo {
 
     public Build(World world) {
         this.world = world;
+        this.dockerbuild = null;
         this.noCache = false;
         this.image = "";
         this.comment = "";
@@ -123,25 +127,18 @@ public class Build extends AbstractMojo {
 
     //--
 
-    private void initContext(FileNode context) throws IOException {
-        Node<?> dockerbuild;
-        FileNode destparent;
-        FileNode destfile;
+    private void initContext(FileNode dest) throws IOException, MojoFailureException {
+        Node<?> src;
 
-        dockerbuild = world.resource("vanilla-war" /* TODO */).checkDirectory();
-        if (context.isDirectory()) {
-            context.deleteTree();
+        src = world.resource(dockerbuild);
+        if (!src.isDirectory()) {
+            throw new MojoFailureException("dockerbuild not found: " + dockerbuild);
         }
-        context.mkdirOpt();
-        for (Node<?> srcfile : dockerbuild.find("**/*")) {
-            if (srcfile.isDirectory()) {
-                continue;
-            }
-            destfile = context.join(srcfile.getRelative(dockerbuild));
-            destparent = destfile.getParent();
-            destparent.mkdirsOpt();
-            srcfile.copy(destfile);
+        if (dest.isDirectory()) {
+            dest.deleteTree();
         }
+        dest.mkdirOpt();
+        src.copyDirectory(dest);
     }
 
     //--
