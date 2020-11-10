@@ -191,6 +191,10 @@ public class Build extends AbstractMojo {
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
+        log.info("build context created: " + context);
+        for (Map.Entry<String, String> entry : actuals.entrySet()) {
+            log.info("  " + entry.getKey() + ": " + entry.getValue());
+        }
         output = new StringWriter();
         try {
             id = engine.imageBuild(repositoryTag, actuals, getLabels(originScm), context, noCache, output);
