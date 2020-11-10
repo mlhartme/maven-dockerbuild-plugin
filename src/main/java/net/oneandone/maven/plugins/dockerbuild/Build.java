@@ -193,10 +193,12 @@ public class Build extends AbstractMojo {
         String id;
         BuildImageCmd build;
         StringBuilder cli;
+        FileNode logfileNode;
 
         log = getLog();
+        logfileNode = context.getParent().join(context.getName() + ".log");
         started = System.currentTimeMillis();
-        log.info("building " + repositoryTag + " with dockerbuild " + dockerbuild);
+        log.info("building " + repositoryTag + " with dockerbuild " + dockerbuild + ":");
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
@@ -219,23 +221,22 @@ public class Build extends AbstractMojo {
                 cli.append(entry.getValue());
             }
             cli.append(" " + context);
+            cli.append(" >" + logfileNode);
             log.info(cli.toString());
-            try (PrintWriter logfile = new PrintWriter(context.getParent().join(context.getName() + ".log").newWriter())) {
-                id = build.exec(new BuildResults(log, logfile)).awaitImageId();
+            try (PrintWriter logfile = new PrintWriter(logfileNode.newWriter())) {
+                id = build.exec(new BuildResults(logfile)).awaitImageId();
             }
         } catch (DockerClientException e) {
             log.error("build failed: " + e.getMessage());
             throw new MojoFailureException("build failed");
         }
-        log.debug("done: " + id + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
+        log.info("done - id= " + id + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
     }
 
     public static class BuildResults extends BuildImageResultCallback {
-        private final Log log;
         private final PrintWriter logfile;
 
-        public BuildResults(Log log, PrintWriter logfile) {
-            this.log = log;
+        public BuildResults(PrintWriter logfile) {
             this.logfile = logfile;
         }
 
@@ -246,7 +247,6 @@ public class Build extends AbstractMojo {
             stream = item.getStream();
             if (stream != null) {
                 logfile.print(stream);
-                log.info(stream);
             }
             super.onNext(item);
         }
