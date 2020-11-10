@@ -45,16 +45,6 @@ public class BuildResults extends ResultCallbackTemplate<BuildImageResultCallbac
         return getImageId();
     }
 
-    public String awaitImageId(long timeout, TimeUnit timeUnit) {
-        try {
-            awaitCompletion(timeout, timeUnit);
-        } catch (InterruptedException e) {
-            throw new DockerClientException("Awaiting image id interrupted: ", e);
-        }
-
-        return getImageId();
-    }
-
     private String getImageId() {
         if (imageId != null) {
             return imageId;
