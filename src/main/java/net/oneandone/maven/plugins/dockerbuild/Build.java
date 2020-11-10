@@ -18,6 +18,7 @@ package net.oneandone.maven.plugins.dockerbuild;
 import net.oneandone.stool.docker.BuildError;
 import net.oneandone.stool.docker.Daemon;
 import net.oneandone.stool.docker.ImageInfo;
+import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import net.oneandone.sushi.fs.http.StatusException;
@@ -40,7 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Builds a Docker image and pushes it.
+ * Builds a Docker image.
  */
 @Mojo(name = "build", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
 public class Build extends AbstractMojo {
@@ -99,12 +100,6 @@ public class Build extends AbstractMojo {
     //--
 
 
-    // TODO
-    public FileNode templates() {
-        return world.file("/Users/mhm/Projects/bitbucket.1and1.org/cisodevenv/dockerbuild-library");
-    }
-
-
     public String getOriginOrUnknown() throws IOException {
         FileNode dir;
 
@@ -129,20 +124,20 @@ public class Build extends AbstractMojo {
     //--
 
     private void initContext(FileNode context) throws IOException {
-        FileNode template;
+        Node<?> dockerbuild;
         FileNode destparent;
         FileNode destfile;
 
-        template = templates().join("vanilla-war").checkDirectory(); // TODO
+        dockerbuild = world.resource("vanilla-war" /* TODO */).checkDirectory();
         if (context.isDirectory()) {
             context.deleteTree();
         }
         context.mkdirOpt();
-        for (FileNode srcfile : template.find("**/*")) {
+        for (Node<?> srcfile : dockerbuild.find("**/*")) {
             if (srcfile.isDirectory()) {
                 continue;
             }
-            destfile = context.join(srcfile.getRelative(template));
+            destfile = context.join(srcfile.getRelative(dockerbuild));
             destparent = destfile.getParent();
             destparent.mkdirsOpt();
             srcfile.copy(destfile);
