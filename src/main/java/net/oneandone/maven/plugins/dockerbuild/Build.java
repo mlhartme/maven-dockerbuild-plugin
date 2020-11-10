@@ -223,7 +223,7 @@ public class Build extends AbstractMojo {
             cli.append(" >" + logfileNode);
             log.info(cli.toString());
             try (PrintWriter logfile = new PrintWriter(logfileNode.newWriter())) {
-                id = build.exec(new BuildResults(logfile)).awaitImageId();
+                id = build.exec(new BuildResults(log, logfile)).awaitImageId();
             }
         } catch (DockerClientException | DockerException e) {
             log.error("build failed: " + e.getMessage());

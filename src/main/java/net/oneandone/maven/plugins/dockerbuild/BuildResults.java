@@ -1,63 +1,129 @@
 package net.oneandone.maven.plugins.dockerbuild;
 
-import com.github.dockerjava.api.async.ResultCallbackTemplate;
-import com.github.dockerjava.api.command.BuildImageResultCallback;
+import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.model.BuildResponseItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.maven.plugin.logging.Log;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
-public class BuildResults extends ResultCallbackTemplate<BuildImageResultCallback, BuildResponseItem> {
+public class BuildResults implements ResultCallback<BuildResponseItem> {
+    private final Log log;
     private final PrintWriter logfile;
+    private List<Throwable> errors;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BuildImageResultCallback.class);
+    private final CountDownLatch completed = new CountDownLatch(1);
 
     private String imageId;
-
     private String error;
+    private Closeable stream;
+    private boolean closed = false;
+
+    public BuildResults(Log log, PrintWriter logfile) {
+        this.log = log;
+        this.logfile = logfile;
+        this.errors = new ArrayList<>();
+    }
+
+    @Override
+    public void onStart(Closeable theStream) {
+        this.stream = theStream;
+        this.closed = false;
+    }
 
     @Override
     public void onNext(BuildResponseItem item) {
-        String stream;
+        String st;
 
-        stream = item.getStream();
-        if (stream != null) {
-            logfile.print(stream);
+        st = item.getStream();
+        if (st != null) {
+            logfile.print(st);
         }
         if (item.isBuildSuccessIndicated()) {
             this.imageId = item.getImageId();
         } else if (item.isErrorIndicated()) {
             this.error = item.getError();
         }
-        LOGGER.debug(item.toString());
+        log.debug(item.toString());
     }
+
+    @Override
+    public void onError(Throwable throwable) {
+        if (closed) {
+            return;
+        }
+        errors.add(throwable);
+        try {
+            close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void onComplete() {
+        try {
+            close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //--
+
+    @Override
+    public void close() throws IOException {
+        if (!closed) {
+            closed = true;
+            try {
+                if (stream != null) {
+                    stream.close();
+                }
+            } finally {
+                completed.countDown();
+            }
+        }
+    }
+
+    //--
 
     public String awaitImageId() {
+        Throwable first;
+
         try {
-            awaitCompletion();
+            completed.await();
         } catch (InterruptedException e) {
-            throw new DockerClientException("", e);
+            throw new DockerClientException("interrupted", e);
+        } finally {
+            try {
+                close();
+            } catch (IOException e) {
+                log.error("closed failed: ");
+                log.error(e);
+            }
         }
-
-        return getImageId();
-    }
-
-    private String getImageId() {
+        if (!errors.isEmpty()) {
+            first = errors.get(0);
+            if (first instanceof Error) {
+                throw (Error) first;
+            }
+            if (first instanceof RuntimeException) {
+                throw (RuntimeException) first;
+            }
+            throw new RuntimeException(first);
+        }
         if (imageId != null) {
             return imageId;
+        } else {
+            throw new DockerClientException("Docker build failed: " + error); // error may be null
         }
-
-        if (error == null) {
-            throw new DockerClientException("Could not build image");
-        }
-
-        throw new DockerClientException("Could not build image: " + error);
     }
 
-    public BuildResults(PrintWriter logfile) {
-        this.logfile = logfile;
+    private void awaitCompletion() throws InterruptedException {
     }
 }
