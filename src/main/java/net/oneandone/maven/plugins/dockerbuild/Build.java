@@ -15,9 +15,15 @@
  */
 package net.oneandone.maven.plugins.dockerbuild;
 
-import net.oneandone.stool.docker.BuildError;
-import net.oneandone.stool.docker.Daemon;
-import net.oneandone.stool.docker.ImageInfo;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.BuildImageCmd;
+import com.github.dockerjava.api.command.BuildImageResultCallback;
+import com.github.dockerjava.api.exception.DockerClientException;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
+import com.github.dockerjava.transport.DockerHttpClient;
+import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
@@ -31,13 +37,21 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.kamranzafar.jtar.TarEntry;
+import org.kamranzafar.jtar.TarHeader;
+import org.kamranzafar.jtar.TarOutputStream;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -94,8 +108,14 @@ public class Build extends AbstractMojo {
     }
 
     public void build() throws IOException, MojoFailureException, MojoExecutionException {
-        try (Daemon daemon = Daemon.create()) {
-            build(daemon, world.file(buildDirectory).join("dockerbuild"));
+        DockerClientConfig config;
+
+        config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+        try (DockerHttpClient http = new ZerodepDockerHttpClient.Builder()
+                .dockerHost(config.getDockerHost())
+                .sslConfig(config.getSSLConfig())
+                .build(); DockerClient docker = DockerClientImpl.getInstance(config, http)) {
+            build(docker, world.file(buildDirectory).join("dockerbuild"));
         } catch (StatusException e) {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
@@ -143,7 +163,7 @@ public class Build extends AbstractMojo {
 
     //--
 
-    public String build(Daemon daemon, FileNode context) throws IOException, MojoFailureException, MojoExecutionException {
+    public String build(DockerClient docker, FileNode context) throws IOException, MojoFailureException, MojoExecutionException {
         Log log;
         long started;
         String repositoryTag;
@@ -154,7 +174,7 @@ public class Build extends AbstractMojo {
 
         repositoryTag = sanitize(image); // TODO: resolve
         log.info("building " + repositoryTag);
-        doBuild(log, daemon, context, repositoryTag, getOriginOrUnknown());
+        doBuild(log, docker, context, repositoryTag, getOriginOrUnknown());
 
         log.info("done: image " + repositoryTag + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
         return repositoryTag;
@@ -182,11 +202,12 @@ public class Build extends AbstractMojo {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
     }
 
-    private void doBuild(Log log, Daemon engine, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
+    private void doBuild(Log log, DockerClient docker, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
         Map<String, BuildArgument> formals;
         Map<String, String> actuals;
         StringWriter output;
         String id;
+        BuildImageCmd build;
 
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
@@ -196,12 +217,18 @@ public class Build extends AbstractMojo {
             log.info("  " + entry.getKey() + ": " + entry.getValue());
         }
         output = new StringWriter();
-        try {
-            id = engine.imageBuild(repositoryTag, actuals, getLabels(originScm), context, noCache, output);
-        } catch (BuildError e) {
-            log.error("build failed: " + e.error);
+        try (InputStream tarSrc = tar(context).newInputStream()) {
+            build = docker.buildImageCmd()
+                    .withTarInputStream(tarSrc)
+                    .withNoCache(noCache)
+                    .withTags(Collections.singleton(repositoryTag));
+            for (Map.Entry<String, String> entry : actuals.entrySet()) {
+                build.withBuildArg(entry.getKey(), entry.getValue());
+            }
+            id = build.exec(new BuildImageResultCallback()).awaitImageId();
+        } catch (DockerClientException e) {
+            log.error("build failed: " + e.getMessage());
             log.error("build output:");
-            log.error(e.output);
             throw new MojoFailureException("build failed");
         } finally {
             output.close();
@@ -210,14 +237,51 @@ public class Build extends AbstractMojo {
         log.debug(output.toString());
     }
 
-    private Map<String, String> getLabels(String originScm) {
-        Map<String, String> labels;
+    /** tar directory into byte array */
+    public static FileNode tar(FileNode directory) throws IOException {
+        FileNode result;
+        List<FileNode> all;
+        TarOutputStream tar;
+        byte[] buffer;
+        Iterator<FileNode> iter;
+        FileNode file;
+        int count;
+        long now;
 
-        labels = new HashMap<>();
-        labels.put(ImageInfo.IMAGE_LABEL_COMMENT, comment);
-        labels.put(ImageInfo.IMAGE_LABEL_ORIGIN_SCM, originScm);
-        labels.put(ImageInfo.IMAGE_LABEL_ORIGIN_USER, originUser());
-        return labels;
+        result = directory.getWorld().getTemp().createTempFile();
+        buffer = new byte[64 * 1024];
+        try (OutputStream dest = result.newOutputStream()) {
+            tar = new TarOutputStream(dest);
+            now = System.currentTimeMillis();
+            all = directory.find("**/*");
+            iter = all.iterator();
+            while (iter.hasNext()) {
+                file = iter.next();
+                if (file.isDirectory()) {
+                    tar.putNextEntry(new TarEntry(TarHeader.createHeader(file.getRelative(directory), 0, now, true, 0700)));
+                    iter.remove();
+                }
+            }
+            iter = all.iterator();
+            while (iter.hasNext()) {
+                file = iter.next();
+                tar.putNextEntry(new TarEntry(TarHeader.createHeader(file.getRelative(directory), file.size(), now, false, 0700)));
+                try (InputStream src = file.newInputStream()) {
+                    while (true) {
+                        count = src.read(buffer);
+                        if (count == -1) {
+                            break;
+                        }
+                        tar.write(buffer, 0, count);
+                    }
+                }
+            }
+            tar.close();
+        } catch (IOException | RuntimeException | Error e) {
+            result.deleteFile();
+            throw e;
+        }
+        return result;
     }
 
     private static String originUser() {

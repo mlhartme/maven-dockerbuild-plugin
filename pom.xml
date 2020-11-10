@@ -26,14 +26,25 @@
 
   <dependencies>
     <dependency>
-      <groupId>net.oneandone.stool</groupId>
-      <artifactId>docker</artifactId>
-      <version>6.0.0</version>
+      <groupId>com.github.docker-java</groupId>
+      <artifactId>docker-java-core</artifactId>
+      <version>3.2.5</version>
     </dependency>
+    <dependency>
+      <groupId>com.github.docker-java</groupId>
+      <artifactId>docker-java-transport-zerodep</artifactId>
+      <version>3.2.5</version>
+    </dependency>
+
     <dependency>
       <groupId>net.oneandone</groupId>
       <artifactId>sushi</artifactId>
       <version>3.2.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.kamranzafar</groupId>
+      <artifactId>jtar</artifactId>
+      <version>2.3</version>
     </dependency>
 
     <dependency>
