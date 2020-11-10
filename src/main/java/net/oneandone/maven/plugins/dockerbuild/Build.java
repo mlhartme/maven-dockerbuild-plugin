@@ -198,7 +198,7 @@ public class Build extends AbstractMojo {
         log = getLog();
         logfileNode = context.getParent().join(context.getName() + ".log");
         started = System.currentTimeMillis();
-        log.info("building " + repositoryTag + " with dockerbuild " + dockerbuild + ":");
+        log.info("unpacking dockerbuild " + dockerbuild);
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
@@ -230,7 +230,7 @@ public class Build extends AbstractMojo {
             log.error("build failed: " + e.getMessage());
             throw new MojoFailureException("build failed");
         }
-        log.info("done - id= " + id + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
+        log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
     }
 
     public static class BuildResults extends BuildImageResultCallback {
