@@ -175,10 +175,12 @@ public class Build extends AbstractMojo {
         result = new StringBuilder(str.length());
         for (int i = 0, max = str.length(); i < max; i++) {
             c = str.charAt(i);
-            if (asIs(c)) {
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c == '_') || (c == '-')) {
                 result.append(c);
+            } else if (c >= 'A' && c <= 'Z') {
+                result.append(Character.toLowerCase(c));
             } else {
-                result.append('-');
+                // skip
             }
         }
         return result.toString();
