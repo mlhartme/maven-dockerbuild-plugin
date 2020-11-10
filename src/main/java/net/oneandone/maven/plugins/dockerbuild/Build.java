@@ -17,8 +17,6 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
-import com.github.dockerjava.api.exception.DockerClientException;
-import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -225,10 +223,12 @@ public class Build extends AbstractMojo {
             try (PrintWriter logfile = new PrintWriter(logfileNode.newWriter())) {
                 id = build.exec(new BuildResults(log, logfile)).awaitImageId();
             }
-        } catch (DockerClientException | DockerException e) {
-            log.error("build failed: " + e.getMessage());
-            log.debug(e);
-            throw new MojoFailureException("build failed");
+        } catch (MojoFailureException | MojoExecutionException e) {
+            log.error("build failed");
+            for (String line : logfileNode.readLines()) {
+                log.error("  " + line);
+            }
+            throw e;
         }
         log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
     }

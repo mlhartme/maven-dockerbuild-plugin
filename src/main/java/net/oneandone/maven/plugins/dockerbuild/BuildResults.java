@@ -1,8 +1,9 @@
 package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.async.ResultCallback;
-import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.model.BuildResponseItem;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 
 import java.io.Closeable;
@@ -92,13 +93,13 @@ public class BuildResults implements ResultCallback<BuildResponseItem> {
 
     //--
 
-    public String awaitImageId() {
-        Throwable first;
+    public String awaitImageId() throws MojoExecutionException, MojoFailureException {
+        MojoExecutionException exception;
 
         try {
             completed.await();
         } catch (InterruptedException e) {
-            throw new DockerClientException("interrupted", e);
+            throw new MojoExecutionException("interrupted", e);
         } finally {
             try {
                 close();
@@ -108,22 +109,16 @@ public class BuildResults implements ResultCallback<BuildResponseItem> {
             }
         }
         if (!errors.isEmpty()) {
-            first = errors.get(0);
-            if (first instanceof Error) {
-                throw (Error) first;
+            exception = new MojoExecutionException("exception(s) processing response stream");
+            for (Throwable th : errors) {
+                exception.initCause(th);
             }
-            if (first instanceof RuntimeException) {
-                throw (RuntimeException) first;
-            }
-            throw new RuntimeException(first);
+            throw exception;
         }
         if (imageId != null) {
             return imageId;
         } else {
-            throw new DockerClientException("Docker build failed: " + error); // error may be null
+            throw new MojoFailureException("Docker build failed: " + error); // error may be null
         }
-    }
-
-    private void awaitCompletion() throws InterruptedException {
     }
 }
