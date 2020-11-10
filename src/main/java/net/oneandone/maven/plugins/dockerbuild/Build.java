@@ -17,9 +17,8 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
-import com.github.dockerjava.api.command.BuildImageResultCallback;
 import com.github.dockerjava.api.exception.DockerClientException;
-import com.github.dockerjava.api.model.BuildResponseItem;
+import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -226,30 +225,12 @@ public class Build extends AbstractMojo {
             try (PrintWriter logfile = new PrintWriter(logfileNode.newWriter())) {
                 id = build.exec(new BuildResults(logfile)).awaitImageId();
             }
-        } catch (DockerClientException e) {
+        } catch (DockerClientException | DockerException e) {
             log.error("build failed: " + e.getMessage());
+            log.debug(e);
             throw new MojoFailureException("build failed");
         }
         log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
-    }
-
-    public static class BuildResults extends BuildImageResultCallback {
-        private final PrintWriter logfile;
-
-        public BuildResults(PrintWriter logfile) {
-            this.logfile = logfile;
-        }
-
-        @Override
-        public void onNext(BuildResponseItem item) {
-            String stream;
-
-            stream = item.getStream();
-            if (stream != null) {
-                logfile.print(stream);
-            }
-            super.onNext(item);
-        }
     }
 
     /** tar directory into byte array */
