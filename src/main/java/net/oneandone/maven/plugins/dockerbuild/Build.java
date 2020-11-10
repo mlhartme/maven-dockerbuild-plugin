@@ -19,6 +19,7 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
 import com.github.dockerjava.api.command.BuildImageResultCallback;
 import com.github.dockerjava.api.exception.DockerClientException;
+import com.github.dockerjava.api.model.BuildResponseItem;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -44,7 +45,7 @@ import org.kamranzafar.jtar.TarOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
@@ -109,13 +110,16 @@ public class Build extends AbstractMojo {
 
     public void build() throws IOException, MojoFailureException, MojoExecutionException {
         DockerClientConfig config;
+        String repositoryTag;
 
         config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
         try (DockerHttpClient http = new ZerodepDockerHttpClient.Builder()
                 .dockerHost(config.getDockerHost())
                 .sslConfig(config.getSSLConfig())
-                .build(); DockerClient docker = DockerClientImpl.getInstance(config, http)) {
-            build(docker, world.file(buildDirectory).join("dockerbuild"));
+                .build();
+             DockerClient docker = DockerClientImpl.getInstance(config, http)) {
+            repositoryTag = sanitize(image); // TODO: resolve
+            doBuild(docker, world.file(buildDirectory).join("dockerbuild"), repositoryTag, getOriginOrUnknown());
         } catch (StatusException e) {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
@@ -163,23 +167,6 @@ public class Build extends AbstractMojo {
 
     //--
 
-    public String build(DockerClient docker, FileNode context) throws IOException, MojoFailureException, MojoExecutionException {
-        Log log;
-        long started;
-        String repositoryTag;
-
-        log = getLog();
-        started = System.currentTimeMillis();
-        log.info("building image for " + toString());
-
-        repositoryTag = sanitize(image); // TODO: resolve
-        log.info("building " + repositoryTag);
-        doBuild(log, docker, context, repositoryTag, getOriginOrUnknown());
-
-        log.info("done: image " + repositoryTag + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
-        return repositoryTag;
-    }
-
     private static String sanitize(String str) {
         StringBuilder result;
         char c;
@@ -198,25 +185,21 @@ public class Build extends AbstractMojo {
         return result.toString();
     }
 
-    private static boolean asIs(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
-    }
-
-    private void doBuild(Log log, DockerClient docker, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
+    private void doBuild(DockerClient docker, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
+        Log log;
+        long started;
         Map<String, BuildArgument> formals;
         Map<String, String> actuals;
-        StringWriter output;
         String id;
         BuildImageCmd build;
+        StringBuilder cli;
 
+        log = getLog();
+        started = System.currentTimeMillis();
+        log.info("building " + repositoryTag + " with dockerbuild " + dockerbuild);
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
-        log.info("build context created: " + context);
-        for (Map.Entry<String, String> entry : actuals.entrySet()) {
-            log.info("  " + entry.getKey() + ": " + entry.getValue());
-        }
-        output = new StringWriter();
         try (InputStream tarSrc = tar(context).newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
@@ -225,16 +208,48 @@ public class Build extends AbstractMojo {
             for (Map.Entry<String, String> entry : actuals.entrySet()) {
                 build.withBuildArg(entry.getKey(), entry.getValue());
             }
-            id = build.exec(new BuildImageResultCallback()).awaitImageId();
+            cli = new StringBuilder("docker build -t \"" + repositoryTag + '"');
+            if (noCache) {
+                cli.append(" --no-cache");
+            }
+            for (Map.Entry<String, String> entry : actuals.entrySet()) {
+                cli.append(" --build-arg ");
+                cli.append(entry.getKey());
+                cli.append('=');
+                cli.append(entry.getValue());
+            }
+            cli.append(" " + context);
+            log.info(cli.toString());
+            try (PrintWriter logfile = new PrintWriter(context.getParent().join(context.getName() + ".log").newWriter())) {
+                id = build.exec(new BuildResults(log, logfile)).awaitImageId();
+            }
         } catch (DockerClientException e) {
             log.error("build failed: " + e.getMessage());
-            log.error("build output:");
             throw new MojoFailureException("build failed");
-        } finally {
-            output.close();
         }
-        log.debug("build image " + id);
-        log.debug(output.toString());
+        log.debug("done: " + id + " (" + (System.currentTimeMillis() - started) / 1000 + " seconds)");
+    }
+
+    public static class BuildResults extends BuildImageResultCallback {
+        private final Log log;
+        private final PrintWriter logfile;
+
+        public BuildResults(Log log, PrintWriter logfile) {
+            this.log = log;
+            this.logfile = logfile;
+        }
+
+        @Override
+        public void onNext(BuildResponseItem item) {
+            String stream;
+
+            stream = item.getStream();
+            if (stream != null) {
+                logfile.print(stream);
+                log.info(stream);
+            }
+            super.onNext(item);
+        }
     }
 
     /** tar directory into byte array */
