@@ -20,6 +20,10 @@ Rational: shared builds is the reason I wrote this plugin; I didn't find a prope
 to encourage Java developers *not* to copy-paste a Docker build into their project.
 
 
+## Configuration
+
+`dockerbuild` specifies the Dockerbuild to use
+
 ## Parametrization
 
 Dockerfiles can be parameterized with arguments, i.e. using the `ARG` directive. You can set arguments in the plugin configuration inside
