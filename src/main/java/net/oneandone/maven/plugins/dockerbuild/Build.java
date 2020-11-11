@@ -135,6 +135,10 @@ public class Build extends AbstractMojo {
 
     //--
 
+    private FileNode imageFile(FileNode context) {
+        return context.getParent().join(context.getName() + ".image");
+    }
+
     private void initContext(FileNode dest) throws IOException, MojoFailureException {
         Node<?> src;
 
@@ -252,6 +256,7 @@ public class Build extends AbstractMojo {
         started = System.currentTimeMillis();
         log.info("extracting dockerbuild " + dockerbuild + " to " + context);
         initContext(context);
+        imageFile(context).writeString(repositoryTag);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
         try (InputStream tarSrc = tar(context).newInputStream()) {
