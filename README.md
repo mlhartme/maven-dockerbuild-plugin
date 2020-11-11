@@ -1,4 +1,4 @@
-# Image Maven Plugin
+# Maven Dockerbuild Plugin
 
 This is Maven plugin to build Docker images. It'a not intendented to run images (e.g. for testing).
 
@@ -8,7 +8,7 @@ The main features of this plugin is *shared Docker builds*. Shared builds means 
 the Docker build context including the Dockerfile) is *not* part of the respective Maven module or projects, i.e. it's not part of the source
 tree and it's not specified inline in the pom (like the fabric8 plugin allows). Instead, the Docker build it loaded from a central, shared location.
 
-We hope to benefit form Shared Docker build becuase
+We hope to benefit form Shared Docker build because
 * simplify maintenance: we just have to updates a small number shared builds instead of a possibly hug number of projects
 * separation: Java developers can concentrate on their Java build - they don't have to care about the best way to build an image for them,
   they simply reference the latest shared build that fits their framework/setup. Otherwise, many developers will probably copy-and-paste

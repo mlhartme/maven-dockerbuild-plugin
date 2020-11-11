@@ -26,7 +26,7 @@ import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import net.oneandone.sushi.fs.http.StatusException;
-import net.oneandone.sushi.launcher.Launcher;
+import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -35,6 +35,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.kamranzafar.jtar.TarEntry;
 import org.kamranzafar.jtar.TarHeader;
 import org.kamranzafar.jtar.TarOutputStream;
@@ -83,6 +84,9 @@ public class Build extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
     private String buildFinalName;
 
+    @Parameter(property = "project", required = true, readonly = true)
+    private final MavenProject project;
+
     public Build() throws IOException {
         this(World.create());
     }
@@ -94,6 +98,7 @@ public class Build extends AbstractMojo {
         this.image = "";
         this.comment = "";
         this.arguments = new HashMap<>();
+        this.project = null;
     }
 
     @Override
@@ -116,7 +121,7 @@ public class Build extends AbstractMojo {
                 .build();
              DockerClient docker = DockerClientImpl.getInstance(config, http)) {
             repositoryTag = sanitize(image); // TODO: resolve
-            doBuild(docker, world.file(buildDirectory).join("dockerbuild"), repositoryTag, getOriginOrUnknown());
+            doBuild(docker, world.file(buildDirectory).join("dockerbuild"), repositoryTag);
         } catch (StatusException e) {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
@@ -124,27 +129,6 @@ public class Build extends AbstractMojo {
 
     //--
 
-
-    public String getOriginOrUnknown() throws IOException {
-        FileNode dir;
-
-        dir = world.getWorking(); // TODO
-        do {
-            if (dir.join(".git").isDirectory()) {
-                return "git:" + git(dir, "config", "--get", "remote.origin.url").exec().trim();
-            }
-            dir = dir.getParent();
-        } while (dir != null);
-        return "unknown";
-    }
-
-    private static Launcher git(FileNode cwd, String... args) {
-        Launcher launcher;
-
-        launcher = new Launcher(cwd, "git");
-        launcher.arg(args);
-        return launcher;
-    }
 
     //--
 
@@ -182,7 +166,7 @@ public class Build extends AbstractMojo {
         return result.toString();
     }
 
-    private void doBuild(DockerClient docker, FileNode context, String repositoryTag, String originScm) throws MojoFailureException, IOException, MojoExecutionException {
+    private void doBuild(DockerClient docker, FileNode context, String repositoryTag) throws MojoFailureException, IOException, MojoExecutionException {
         Log log;
         long started;
         Map<String, BuildArgument> formals;
@@ -195,7 +179,7 @@ public class Build extends AbstractMojo {
         log = getLog();
         logfileNode = context.getParent().join(context.getName() + ".log");
         started = System.currentTimeMillis();
-        log.info("unpacking dockerbuild " + dockerbuild);
+        log.info("extracting dockerbuild " + dockerbuild + " to " + context);
         initContext(context);
         formals = BuildArgument.scan(context.join("Dockerfile"));
         actuals = buildArgs(formals, context);
@@ -291,6 +275,7 @@ public class Build extends AbstractMojo {
     /** compute build argument values and add artifactArguments to context. */
     private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context) throws MojoFailureException, IOException {
         final String artifactPrefix = "artifact";
+        final String pomPrefix = "pom";
         Map<String, String> result;
         String property;
         FileNode src;
@@ -307,6 +292,14 @@ public class Build extends AbstractMojo {
                 src.copyFile(dest);
                 result.put(arg.name, dest.getName());
                 getLog().info("adding artifact " + dest.getName());
+            } else if (arg.name.startsWith(pomPrefix)) {
+                switch (arg.name) {
+                    case "pomScm":
+                        result.put(arg.name, getScm());
+                        break;
+                    default:
+                        throw new MojoFailureException("unknown pom build argument: " + arg.name);
+                }
             } else {
                 result.put(arg.name, arg.dflt);
             }
@@ -324,6 +317,22 @@ public class Build extends AbstractMojo {
             }
         }
         return result;
+    }
+
+    private String getScm() throws MojoFailureException {
+        Scm scm;
+        String result;
+
+        scm = project.getScm();
+        result = scm.getDeveloperConnection();
+        if (result != null) {
+            return result;
+        }
+        result = scm.getConnection();
+        if (result != null) {
+            return result;
+        }
+        throw new MojoFailureException("pomScm argument: scm is not defined in this project");
     }
 
     private static String available(Collection<BuildArgument> args) {

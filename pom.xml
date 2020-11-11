@@ -60,6 +60,11 @@
            for execution with using provided scope -->
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${maven.version}</version>
+    </dependency>
 
     <!-- test -->
     <dependency>
