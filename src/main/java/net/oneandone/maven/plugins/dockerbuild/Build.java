@@ -264,7 +264,7 @@ public class Build extends AbstractMojo {
         return result;
     }
 
-    private static String originUser() {
+    private static String origin() {
         try {
             return System.getProperty("user.name") + '@' + InetAddress.getLocalHost().getCanonicalHostName();
         } catch (UnknownHostException e) {
@@ -276,6 +276,7 @@ public class Build extends AbstractMojo {
     private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context) throws MojoFailureException, IOException {
         final String artifactPrefix = "artifact";
         final String pomPrefix = "pom";
+        final String xPrefix = "x";
         Map<String, String> result;
         String property;
         FileNode src;
@@ -296,6 +297,17 @@ public class Build extends AbstractMojo {
                 switch (arg.name) {
                     case "pomScm":
                         result.put(arg.name, getScm());
+                        break;
+                    default:
+                        throw new MojoFailureException("unknown pom build argument: " + arg.name);
+                }
+            } else if (arg.name.startsWith(xPrefix)) {
+                switch (arg.name) {
+                    case "xOrigin":
+                        result.put(arg.name, origin());
+                        break;
+                    case "xComment":
+                        result.put(arg.name, comment);
                         break;
                     default:
                         throw new MojoFailureException("unknown pom build argument: " + arg.name);
