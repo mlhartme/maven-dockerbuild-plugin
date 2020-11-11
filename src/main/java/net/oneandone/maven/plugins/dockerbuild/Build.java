@@ -77,9 +77,6 @@ public class Build extends Base {
     @Parameter
     private Map<String, String> arguments;
 
-    @Parameter(defaultValue = "${project.build.directory}", readonly = true)
-    private String buildDirectory;
-
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
     private String buildFinalName;
 
@@ -106,7 +103,7 @@ public class Build extends Base {
                 .build();
              DockerClient docker = DockerClientImpl.getInstance(config, http)) {
             repositoryTag = resolve(image); // TODO: resolve
-            doBuild(docker, world.file(buildDirectory).join("dockerbuild"), repositoryTag);
+            doBuild(docker, repositoryTag);
         } catch (StatusException e) {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
@@ -114,21 +111,19 @@ public class Build extends Base {
 
     //--
 
-    private FileNode imageFile(FileNode context) {
-        return context.getParent().join(context.getName() + ".image");
-    }
-
-    private void initContext(FileNode dest) throws IOException, MojoFailureException {
+    private void initContext() throws IOException, MojoFailureException {
+        FileNode dest;
         Node<?> src;
 
         src = world.resource(dockerbuild);
+        dest = context();
         if (!src.isDirectory()) {
             throw new MojoFailureException("dockerbuild not found: " + dockerbuild);
         }
         if (dest.isDirectory()) {
             dest.deleteTree();
         }
-        dest.mkdirOpt();
+        dest.mkdirsOpt();
         src.copyDirectory(dest);
     }
 
@@ -220,7 +215,8 @@ public class Build extends Base {
         return result.toString();
     }
 
-    private void doBuild(DockerClient docker, FileNode context, String repositoryTag) throws MojoFailureException, IOException, MojoExecutionException {
+    private void doBuild(DockerClient docker, String repositoryTag) throws MojoFailureException, IOException, MojoExecutionException {
+        FileNode context;
         Log log;
         long started;
         Map<String, BuildArgument> formals;
@@ -228,16 +224,19 @@ public class Build extends Base {
         String id;
         BuildImageCmd build;
         StringBuilder cli;
-        FileNode logfileNode;
+        FileNode buildLog;
 
         log = getLog();
-        logfileNode = context.getParent().join(context.getName() + ".log");
+        context = context();
+        buildLog = buildLog();
+        buildLog.getParent().mkdirsOpt();
         started = System.currentTimeMillis();
         log.info("extracting dockerbuild " + dockerbuild + " to " + context);
-        initContext(context);
-        imageFile(context).writeString(repositoryTag);
+        initContext();
+        imageFile().getParent().mkdirsOpt();
+        imageFile().writeString(repositoryTag);
         formals = BuildArgument.scan(context.join("Dockerfile"));
-        actuals = buildArgs(formals, context);
+        actuals = buildArgs(formals);
         try (InputStream tarSrc = tar(context).newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
@@ -257,14 +256,14 @@ public class Build extends Base {
                 cli.append(entry.getValue());
             }
             cli.append(" " + context);
-            cli.append(" >" + logfileNode);
+            cli.append(" >" + buildLog);
             log.info(cli.toString());
-            try (PrintWriter logfile = new PrintWriter(logfileNode.newWriter())) {
+            try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
                 id = build.exec(new BuildResults(log, logfile)).awaitImageId();
             }
         } catch (MojoFailureException | MojoExecutionException e) {
             log.error("build failed");
-            for (String line : logfileNode.readLines()) {
+            for (String line : buildLog.readLines()) {
                 log.error("  " + line);
             }
             throw e;
@@ -328,7 +327,7 @@ public class Build extends Base {
     }
 
     /** compute build argument values and add artifactArguments to context. */
-    private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context) throws MojoFailureException, IOException {
+    private Map<String, String> buildArgs(Map<String, BuildArgument> formals) throws MojoFailureException, IOException {
         final String artifactPrefix = "artifact";
         final String pomPrefix = "pom";
         final String xPrefix = "build";
@@ -342,9 +341,9 @@ public class Build extends Base {
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(artifactPrefix)) {
                 type = arg.name.substring(artifactPrefix.length()).toLowerCase();
-                src = world.file(buildDirectory).join(buildFinalName + "." + type);
+                src = world.file(project.getBuild().getDirectory()).join(buildFinalName + "." + type);
                 src.checkFile();
-                dest = context.join(src.getName());
+                dest = context().join(src.getName());
                 src.copyFile(dest);
                 result.put(arg.name, dest.getName());
                 getLog().info("cp " + src + " " + dest);
