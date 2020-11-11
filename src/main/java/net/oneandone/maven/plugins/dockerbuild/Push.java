@@ -16,7 +16,7 @@
 package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.async.ResultCallback;
+import com.github.dockerjava.core.command.PushImageResultCallback;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -38,7 +38,7 @@ public class Push extends Base {
 
         try {
             image = imageFile().readString().trim();
-            docker.pushImageCmd(image).exec(new ResultCallback.Adapter<>()).awaitCompletion();
+            docker.pushImageCmd(image).exec(new PushImageResultCallback()).awaitCompletion();
             getLog().info("pushed " + image);
         } catch (InterruptedException e) {
             throw new MojoFailureException("push interrupted", e);
