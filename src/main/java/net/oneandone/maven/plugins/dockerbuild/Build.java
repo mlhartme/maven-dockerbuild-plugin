@@ -23,11 +23,9 @@ import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import net.oneandone.sushi.fs.Node;
-import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import net.oneandone.sushi.fs.http.StatusException;
 import org.apache.maven.model.Scm;
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
@@ -59,9 +57,7 @@ import java.util.Map;
  * Builds a Docker image.
  */
 @Mojo(name = "build", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
-public class Build extends AbstractMojo {
-    private final World world;
-
+public class Build extends Base {
     @Parameter(required = true)
     private final String dockerbuild;
 
@@ -91,11 +87,6 @@ public class Build extends AbstractMojo {
     private final MavenProject project;
 
     public Build() throws IOException {
-        this(World.create());
-    }
-
-    public Build(World world) {
-        this.world = world;
         this.dockerbuild = null;
         this.noCache = false;
         this.image = "";
@@ -104,16 +95,7 @@ public class Build extends AbstractMojo {
         this.project = null;
     }
 
-    @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
-        try {
-            build();
-        } catch (IOException e) {
-            throw new MojoExecutionException("io error: " + e.getMessage(), e);
-        }
-    }
-
-    public void build() throws IOException, MojoFailureException, MojoExecutionException {
+    public void doExecute() throws IOException, MojoFailureException, MojoExecutionException {
         DockerClientConfig config;
         String repositoryTag;
 
@@ -129,9 +111,6 @@ public class Build extends AbstractMojo {
             throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
         }
     }
-
-    //--
-
 
     //--
 
