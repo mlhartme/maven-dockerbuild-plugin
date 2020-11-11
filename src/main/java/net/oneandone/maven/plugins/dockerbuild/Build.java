@@ -276,7 +276,7 @@ public class Build extends AbstractMojo {
     private Map<String, String> buildArgs(Map<String, BuildArgument> formals, FileNode context) throws MojoFailureException, IOException {
         final String artifactPrefix = "artifact";
         final String pomPrefix = "pom";
-        final String xPrefix = "x";
+        final String xPrefix = "build";
         Map<String, String> result;
         String property;
         FileNode src;
@@ -292,25 +292,25 @@ public class Build extends AbstractMojo {
                 dest = context.join(src.getName());
                 src.copyFile(dest);
                 result.put(arg.name, dest.getName());
-                getLog().info("adding artifact " + dest.getName());
+                getLog().info("cp " + src + " " + dest);
             } else if (arg.name.startsWith(pomPrefix)) {
                 switch (arg.name) {
                     case "pomScm":
                         result.put(arg.name, getScm());
                         break;
                     default:
-                        throw new MojoFailureException("unknown pom build argument: " + arg.name);
+                        throw new MojoFailureException("unknown pom argument: " + arg.name);
                 }
             } else if (arg.name.startsWith(xPrefix)) {
                 switch (arg.name) {
-                    case "xOrigin":
+                    case "buildOrigin":
                         result.put(arg.name, origin());
                         break;
-                    case "xComment":
+                    case "buildComment":
                         result.put(arg.name, comment);
                         break;
                     default:
-                        throw new MojoFailureException("unknown pom build argument: " + arg.name);
+                        throw new MojoFailureException("unknown build argument: " + arg.name);
                 }
             } else {
                 result.put(arg.name, arg.dflt);
@@ -319,7 +319,7 @@ public class Build extends AbstractMojo {
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
             property = entry.getKey();
             if (!result.containsKey(property)) {
-                throw new MojoFailureException("unknown build argument: " + property + "\n" + available(formals.values()));
+                throw new MojoFailureException("unknown argument: " + property + "\n" + available(formals.values()));
             }
             result.put(property, entry.getValue());
         }

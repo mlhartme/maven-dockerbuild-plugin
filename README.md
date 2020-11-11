@@ -22,8 +22,53 @@ to encourage Java developers *not* to copy-paste a Docker build into their proje
 
 ## Parametrization
 
-Builds can be parameterized with Dockerfile build arguments and files, both of them configured in the plugin configuratuion. Use build
-arguments to configure things like the Java version. Use files to pass in artifacts.
+Dockerfiles can be parameterized with arguments, i.e. using the `ARG` directive. You can set arguments in the plugin configuration inside
+the `arguments` section, e.g.
+
+    <configuration>
+      ...
+      <arguments>
+        <memory>2048</memory>
+      </arguments>
+      ...
+    </configuration>
+
+passes 2048 to the `memory` Dockerfile argument.
+
+In addition, the plugin automatically assigns various types of arguments. Argument types are distinguished by their name prefix.
+
+### Artifact arguments
+
+Uee artifact arguments to add Maven artifacts the Docker build context.
+
+* `artifactWar` copies the war file into the build context and sets the argument to the respective path
+* `artifactJar` copies the jar file into the build context and sets the argument to ths respective path
+
+
+### Pom arguments
+
+Use pom argument to pass pom data into you Dockerfile.
+
+* `pomScm`  scm developerConnection or - if not set - connection
+
+
+### Build argument
+
+User build arguments to pass additional data into your Dockerfile
+
+* `buildComment` as specified for the build
+* `buildOrigin` current user and the machine running this build
+
+
+## Implementation
+
+This plugin is pretty simple:
+* resolve artifact containing the docker build
+* unpack into target/dockerfile
+* copy artifact arguments into this directory
+* user Dockers Java Client API to build the image;
+  note that the plugin outputs the equicalent docker command line call to document precisely that it does - the command line is *not* used
+
 
 ## Links
 
