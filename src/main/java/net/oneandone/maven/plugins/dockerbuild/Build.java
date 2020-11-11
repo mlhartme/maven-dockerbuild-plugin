@@ -17,14 +17,8 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.transport.DockerHttpClient;
-import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.file.FileNode;
-import net.oneandone.sushi.fs.http.StatusException;
 import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -92,21 +86,63 @@ public class Build extends Base {
         this.project = null;
     }
 
-    public void doExecute() throws IOException, MojoFailureException, MojoExecutionException {
-        DockerClientConfig config;
+    @Override
+    public void doExecute(DockerClient docker) throws MojoFailureException, IOException, MojoExecutionException {
         String repositoryTag;
+        FileNode context;
+        Log log;
+        long started;
+        Map<String, BuildArgument> formals;
+        Map<String, String> actuals;
+        String id;
+        BuildImageCmd build;
+        StringBuilder cli;
+        FileNode buildLog;
 
-        config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
-        try (DockerHttpClient http = new ZerodepDockerHttpClient.Builder()
-                .dockerHost(config.getDockerHost())
-                .sslConfig(config.getSSLConfig())
-                .build();
-             DockerClient docker = DockerClientImpl.getInstance(config, http)) {
-            repositoryTag = resolve(image); // TODO: resolve
-            doBuild(docker, repositoryTag);
-        } catch (StatusException e) {
-            throw new MojoFailureException("docker build failed: " + e.getResource() + ": " + e.getStatusLine(), e);
+        repositoryTag = resolve(image); // TODO: resolve
+        log = getLog();
+        context = context();
+        buildLog = buildLog();
+        buildLog.getParent().mkdirsOpt();
+        started = System.currentTimeMillis();
+        log.info("extracting dockerbuild " + dockerbuild + " to " + context);
+        initContext();
+        imageFile().getParent().mkdirsOpt();
+        imageFile().writeString(repositoryTag);
+        formals = BuildArgument.scan(context.join("Dockerfile"));
+        actuals = buildArgs(formals);
+        try (InputStream tarSrc = tar(context).newInputStream()) {
+            build = docker.buildImageCmd()
+                    .withTarInputStream(tarSrc)
+                    .withNoCache(noCache)
+                    .withTags(Collections.singleton(repositoryTag));
+            for (Map.Entry<String, String> entry : actuals.entrySet()) {
+                build.withBuildArg(entry.getKey(), entry.getValue());
+            }
+            cli = new StringBuilder("docker build -t \"" + repositoryTag + '"');
+            if (noCache) {
+                cli.append(" --no-cache");
+            }
+            for (Map.Entry<String, String> entry : actuals.entrySet()) {
+                cli.append(" --build-arg ");
+                cli.append(entry.getKey());
+                cli.append('=');
+                cli.append(entry.getValue());
+            }
+            cli.append(" " + context);
+            cli.append(" >" + buildLog);
+            log.info(cli.toString());
+            try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
+                id = build.exec(new BuildResults(log, logfile)).awaitImageId();
+            }
+        } catch (MojoFailureException | MojoExecutionException e) {
+            log.error("build failed");
+            for (String line : buildLog.readLines()) {
+                log.error("  " + line);
+            }
+            throw e;
         }
+        log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
     }
 
     //--
@@ -213,62 +249,6 @@ public class Build extends Base {
             }
         }
         return result.toString();
-    }
-
-    private void doBuild(DockerClient docker, String repositoryTag) throws MojoFailureException, IOException, MojoExecutionException {
-        FileNode context;
-        Log log;
-        long started;
-        Map<String, BuildArgument> formals;
-        Map<String, String> actuals;
-        String id;
-        BuildImageCmd build;
-        StringBuilder cli;
-        FileNode buildLog;
-
-        log = getLog();
-        context = context();
-        buildLog = buildLog();
-        buildLog.getParent().mkdirsOpt();
-        started = System.currentTimeMillis();
-        log.info("extracting dockerbuild " + dockerbuild + " to " + context);
-        initContext();
-        imageFile().getParent().mkdirsOpt();
-        imageFile().writeString(repositoryTag);
-        formals = BuildArgument.scan(context.join("Dockerfile"));
-        actuals = buildArgs(formals);
-        try (InputStream tarSrc = tar(context).newInputStream()) {
-            build = docker.buildImageCmd()
-                    .withTarInputStream(tarSrc)
-                    .withNoCache(noCache)
-                    .withTags(Collections.singleton(repositoryTag));
-            for (Map.Entry<String, String> entry : actuals.entrySet()) {
-                build.withBuildArg(entry.getKey(), entry.getValue());
-            }
-            cli = new StringBuilder("docker build -t \"" + repositoryTag + '"');
-            if (noCache) {
-                cli.append(" --no-cache");
-            }
-            for (Map.Entry<String, String> entry : actuals.entrySet()) {
-                cli.append(" --build-arg ");
-                cli.append(entry.getKey());
-                cli.append('=');
-                cli.append(entry.getValue());
-            }
-            cli.append(" " + context);
-            cli.append(" >" + buildLog);
-            log.info(cli.toString());
-            try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
-                id = build.exec(new BuildResults(log, logfile)).awaitImageId();
-            }
-        } catch (MojoFailureException | MojoExecutionException e) {
-            log.error("build failed");
-            for (String line : buildLog.readLines()) {
-                log.error("  " + line);
-            }
-            throw e;
-        }
-        log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
     }
 
     /** tar directory into byte array */
