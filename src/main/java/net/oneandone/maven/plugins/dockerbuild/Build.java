@@ -17,7 +17,6 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
-import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -28,21 +27,15 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.kamranzafar.jtar.TarEntry;
-import org.kamranzafar.jtar.TarHeader;
-import org.kamranzafar.jtar.TarOutputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -86,9 +79,9 @@ public class Build extends Base {
 
     @Override
     public void doExecute(DockerClient docker) throws MojoFailureException, IOException, MojoExecutionException {
-        String repositoryTag;
-        FileNode context;
         Log log;
+        String repositoryTag;
+        Context context;
         long started;
         Map<String, BuildArgument> formals;
         Map<String, String> actuals;
@@ -97,19 +90,18 @@ public class Build extends Base {
         StringBuilder cli;
         FileNode buildLog;
 
-        repositoryTag = new Placeholders(project).resolve(image);
         log = getLog();
-        context = context();
+        repositoryTag = new Placeholders(project).resolve(image);
+        context = Context.create(context(), dockerbuild);
+        log.info("extracted dockerbuild " + dockerbuild + " to " + context);
         buildLog = buildLog();
         buildLog.getParent().mkdirsOpt();
         started = System.currentTimeMillis();
-        log.info("extracting dockerbuild " + dockerbuild + " to " + context);
-        initContext();
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
-        formals = BuildArgument.scan(context.join("Dockerfile"));
+        formals = BuildArgument.scan(context.dockerfile());
         actuals = buildArgs(formals);
-        try (InputStream tarSrc = tar(context).newInputStream()) {
+        try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
                     .withNoCache(noCache)
@@ -144,69 +136,6 @@ public class Build extends Base {
     }
 
     //--
-
-    private void initContext() throws IOException, MojoFailureException {
-        FileNode dest;
-        Node<?> src;
-
-        src = world.resource(dockerbuild);
-        dest = context();
-        if (!src.isDirectory()) {
-            throw new MojoFailureException("dockerbuild not found: " + dockerbuild);
-        }
-        if (dest.isDirectory()) {
-            dest.deleteTree();
-        }
-        dest.mkdirsOpt();
-        src.copyDirectory(dest);
-    }
-
-    /** tar directory into byte array */
-    public static FileNode tar(FileNode directory) throws IOException {
-        FileNode result;
-        List<FileNode> all;
-        TarOutputStream tar;
-        byte[] buffer;
-        Iterator<FileNode> iter;
-        FileNode file;
-        int count;
-        long now;
-
-        result = directory.getWorld().getTemp().createTempFile();
-        buffer = new byte[64 * 1024];
-        try (OutputStream dest = result.newOutputStream()) {
-            tar = new TarOutputStream(dest);
-            now = System.currentTimeMillis();
-            all = directory.find("**/*");
-            iter = all.iterator();
-            while (iter.hasNext()) {
-                file = iter.next();
-                if (file.isDirectory()) {
-                    tar.putNextEntry(new TarEntry(TarHeader.createHeader(file.getRelative(directory), 0, now, true, 0700)));
-                    iter.remove();
-                }
-            }
-            iter = all.iterator();
-            while (iter.hasNext()) {
-                file = iter.next();
-                tar.putNextEntry(new TarEntry(TarHeader.createHeader(file.getRelative(directory), file.size(), now, false, 0700)));
-                try (InputStream src = file.newInputStream()) {
-                    while (true) {
-                        count = src.read(buffer);
-                        if (count == -1) {
-                            break;
-                        }
-                        tar.write(buffer, 0, count);
-                    }
-                }
-            }
-            tar.close();
-        } catch (IOException | RuntimeException | Error e) {
-            result.deleteFile();
-            throw e;
-        }
-        return result;
-    }
 
     private static String origin() {
         try {
