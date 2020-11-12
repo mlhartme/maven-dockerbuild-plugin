@@ -99,7 +99,7 @@ public class Build extends Base {
         StringBuilder cli;
         FileNode buildLog;
 
-        repositoryTag = resolve(image); // TODO: resolve
+        repositoryTag = resolve(image);
         log = getLog();
         context = context();
         buildLog = buildLog();
