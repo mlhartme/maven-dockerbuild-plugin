@@ -38,10 +38,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -99,7 +97,7 @@ public class Build extends Base {
         StringBuilder cli;
         FileNode buildLog;
 
-        repositoryTag = resolve(image);
+        repositoryTag = new Placeholders(project).resolve(image);
         log = getLog();
         context = context();
         buildLog = buildLog();
@@ -161,94 +159,6 @@ public class Build extends Base {
         }
         dest.mkdirsOpt();
         src.copyDirectory(dest);
-    }
-
-    //--
-
-    /** inspired by https://maven.fabric8.io/#image-name-placeholders */
-    private String resolve(String str) throws MojoFailureException {
-        char c;
-        StringBuilder result;
-
-        result = new StringBuilder();
-        for (int i = 0, max = str.length(); i < max; i++) {
-            c = str.charAt(i);
-            if (c == '%') {
-                if (i + 1 >= max) {
-                    throw new MojoFailureException("invalid placeholder: " + str);
-                }
-                i++;
-                switch (str.charAt(i)) {
-                    case 'a':
-                        result.append(artifact());
-                        break;
-                    case 'g':
-                        result.append(group());
-                        break;
-                    case 'V':
-                        result.append(version());
-                        break;
-                    default:
-                        throw new MojoFailureException("unknown placeholder: " + str);
-                }
-            } else {
-                result.append(c);
-            }
-        }
-        return result.toString();
-    }
-
-    private String artifact() {
-        return sanitize(project.getArtifactId());
-    }
-
-    private String group() {
-        String str;
-        int idx;
-
-        str = project.getGroupId();
-        idx = str.lastIndexOf('.');
-        if (idx != -1) {
-            str = str.substring(idx + 1);
-        }
-        return sanitize(str);
-    }
-
-    // CAUTION: this version differs from fabric8 placeholder
-    private String version() {
-        final String suffix = "-SNAPSHOT";
-        String str;
-
-        str = project.getVersion();
-        if (str.endsWith(suffix)) {
-            str = str.substring(0, str.length() - suffix.length() + 1);
-            str = str + timestamp();
-        }
-        return sanitize(str);
-    }
-
-    private static final SimpleDateFormat FMT = new SimpleDateFormat("yyyyMMdd-HHmmss-SSS");
-
-    private static String timestamp() {
-        return FMT.format(new Date());
-    }
-
-    private static String sanitize(String str) {
-        StringBuilder result;
-        char c;
-
-        result = new StringBuilder(str.length());
-        for (int i = 0, max = str.length(); i < max; i++) {
-            c = str.charAt(i);
-            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c == '_') || (c == '-') || (c == '.')) {
-                result.append(c);
-            } else if (c >= 'A' && c <= 'Z') {
-                result.append(Character.toLowerCase(c));
-            } else {
-                // skip
-            }
-        }
-        return result.toString();
     }
 
     /** tar directory into byte array */
