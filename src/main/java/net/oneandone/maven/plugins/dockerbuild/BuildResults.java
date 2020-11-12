@@ -3,7 +3,6 @@ package net.oneandone.maven.plugins.dockerbuild;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.model.BuildResponseItem;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 
 import java.io.Closeable;
@@ -93,7 +92,7 @@ public class BuildResults implements ResultCallback<BuildResponseItem> {
 
     //--
 
-    public String awaitImageId() throws MojoExecutionException, MojoFailureException {
+    public String awaitImageId() throws MojoExecutionException {
         MojoExecutionException exception;
 
         try {
@@ -118,7 +117,7 @@ public class BuildResults implements ResultCallback<BuildResponseItem> {
         if (imageId != null) {
             return imageId;
         } else {
-            throw new MojoFailureException("Docker build failed: " + error); // error may be null
+            throw new MojoExecutionException("Docker build failed: " + error); // error may be null
         }
     }
 }

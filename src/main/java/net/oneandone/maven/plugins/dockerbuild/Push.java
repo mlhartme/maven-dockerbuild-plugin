@@ -23,7 +23,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.oneandone.sushi.launcher.Failure;
-import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
@@ -49,7 +49,7 @@ public class Push extends Base {
     }
 
     @Override
-    public void doExecute(DockerClient docker) throws IOException, MojoFailureException {
+    public void doExecute(DockerClient docker) throws IOException, MojoExecutionException {
         String image;
         String name;
         String tag;
@@ -78,11 +78,11 @@ public class Push extends Base {
         try {
             pushCmd.exec(new PushImageResultCallback()).awaitCompletion();
         } catch (InterruptedException e) {
-            throw new MojoFailureException("push interrupted", e);
+            throw new MojoExecutionException("push interrupted", e);
         }
     }
 
-    private AuthConfig authConfig(String registry) throws MojoFailureException, IOException {
+    private AuthConfig authConfig(String registry) throws MojoExecutionException, IOException {
         Writer output = new StringWriter();
         Reader input = new StringReader(registry);
         JsonObject json;
@@ -94,7 +94,7 @@ public class Push extends Base {
         try {
             world.getWorking().launcher(credentialsHelper, "get").exec(output, null, true, input, false);
         } catch (Failure failure) {
-            throw new MojoFailureException("cannot access docker credentials: " + failure, failure);
+            throw new MojoExecutionException("cannot access docker credentials: " + failure, failure);
         }
         json = JsonParser.parseReader(new StringReader(output.toString())).getAsJsonObject();
         auth = new AuthConfig();

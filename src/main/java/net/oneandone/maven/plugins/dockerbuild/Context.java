@@ -3,7 +3,7 @@ package net.oneandone.maven.plugins.dockerbuild;
 import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
-import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.kamranzafar.jtar.TarEntry;
 import org.kamranzafar.jtar.TarHeader;
 import org.kamranzafar.jtar.TarOutputStream;
@@ -15,14 +15,14 @@ import java.util.Iterator;
 import java.util.List;
 
 public class Context {
-    public static Context create(FileNode dest, String dockerbuild) throws IOException, MojoFailureException {
+    public static Context create(FileNode dest, String dockerbuild) throws IOException, MojoExecutionException {
         World world;
         Node<?> src;
 
         world = dest.getWorld();
         src = world.resource(dockerbuild);
         if (!src.isDirectory()) {
-            throw new MojoFailureException("dockerbuild not found: " + dockerbuild);
+            throw new MojoExecutionException("dockerbuild not found: " + dockerbuild);
         }
         if (dest.isDirectory()) {
             dest.deleteTree();

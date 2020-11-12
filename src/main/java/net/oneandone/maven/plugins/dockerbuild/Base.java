@@ -24,7 +24,6 @@ import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.IOException;
@@ -60,7 +59,7 @@ public abstract class Base extends AbstractMojo {
     }
 
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
+    public void execute() throws MojoExecutionException {
         try {
             doExecute();
         } catch (IOException e) {
@@ -68,7 +67,7 @@ public abstract class Base extends AbstractMojo {
         }
     }
 
-    public void doExecute() throws IOException, MojoExecutionException, MojoFailureException {
+    public void doExecute() throws IOException, MojoExecutionException {
         DefaultDockerClientConfig config;
 
         config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
@@ -86,5 +85,5 @@ public abstract class Base extends AbstractMojo {
     public void initConfigPath(String configPath) {
     }
 
-    public abstract void doExecute(DockerClient docker) throws IOException, MojoExecutionException, MojoFailureException;
+    public abstract void doExecute(DockerClient docker) throws IOException, MojoExecutionException;
 }

@@ -15,7 +15,7 @@
  */
 package net.oneandone.maven.plugins.dockerbuild;
 
-import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 
 import java.text.SimpleDateFormat;
@@ -29,7 +29,7 @@ public class Placeholders {
         this.project = project;
     }
 
-    public String resolve(String str) throws MojoFailureException {
+    public String resolve(String str) throws MojoExecutionException {
         char c;
         StringBuilder result;
 
@@ -38,7 +38,7 @@ public class Placeholders {
             c = str.charAt(i);
             if (c == '%') {
                 if (i + 1 >= max) {
-                    throw new MojoFailureException("invalid placeholder: " + str);
+                    throw new MojoExecutionException("invalid placeholder: " + str);
                 }
                 i++;
                 switch (str.charAt(i)) {
@@ -52,7 +52,7 @@ public class Placeholders {
                         result.append(version());
                         break;
                     default:
-                        throw new MojoFailureException("unknown placeholder: " + str);
+                        throw new MojoExecutionException("unknown placeholder: " + str);
                 }
             } else {
                 result.append(c);

@@ -20,7 +20,6 @@ import com.github.dockerjava.api.command.BuildImageCmd;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -78,7 +77,7 @@ public class Build extends Base {
     }
 
     @Override
-    public void doExecute(DockerClient docker) throws MojoFailureException, IOException, MojoExecutionException {
+    public void doExecute(DockerClient docker) throws IOException, MojoExecutionException {
         Log log;
         String repositoryTag;
         Context context;
@@ -125,7 +124,7 @@ public class Build extends Base {
             try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
                 id = build.exec(new BuildResults(log, logfile)).awaitImageId();
             }
-        } catch (MojoFailureException | MojoExecutionException e) {
+        } catch (MojoExecutionException e) {
             log.error("build failed");
             for (String line : buildLog.readLines()) {
                 log.error("  " + line);
@@ -146,7 +145,7 @@ public class Build extends Base {
     }
 
     /** compute build argument values and add artifactArguments to context. */
-    private Map<String, String> buildArgs(Map<String, BuildArgument> formals) throws MojoFailureException, IOException {
+    private Map<String, String> buildArgs(Map<String, BuildArgument> formals) throws MojoExecutionException, IOException {
         final String artifactPrefix = "artifact";
         final String pomPrefix = "pom";
         final String xPrefix = "build";
@@ -172,7 +171,7 @@ public class Build extends Base {
                         result.put(arg.name, getScm());
                         break;
                     default:
-                        throw new MojoFailureException("unknown pom argument: " + arg.name);
+                        throw new MojoExecutionException("unknown pom argument: " + arg.name);
                 }
             } else if (arg.name.startsWith(xPrefix)) {
                 switch (arg.name) {
@@ -183,7 +182,7 @@ public class Build extends Base {
                         result.put(arg.name, comment);
                         break;
                     default:
-                        throw new MojoFailureException("unknown build argument: " + arg.name);
+                        throw new MojoExecutionException("unknown build argument: " + arg.name);
                 }
             } else {
                 result.put(arg.name, arg.dflt);
@@ -192,19 +191,19 @@ public class Build extends Base {
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
             property = entry.getKey();
             if (!result.containsKey(property)) {
-                throw new MojoFailureException("unknown argument: " + property + "\n" + available(formals.values()));
+                throw new MojoExecutionException("unknown argument: " + property + "\n" + available(formals.values()));
             }
             result.put(property, entry.getValue());
         }
         for (Map.Entry<String, String> entry : result.entrySet()) {
             if (entry.getValue() == null) {
-                throw new MojoFailureException("mandatory argument is missing: " + entry.getKey());
+                throw new MojoExecutionException("mandatory argument is missing: " + entry.getKey());
             }
         }
         return result;
     }
 
-    private String getScm() throws MojoFailureException {
+    private String getScm() throws MojoExecutionException {
         Scm scm;
         String result;
 
@@ -217,7 +216,7 @@ public class Build extends Base {
         if (result != null) {
             return result;
         }
-        throw new MojoFailureException("pomScm argument: scm is not defined in this project");
+        throw new MojoExecutionException("pomScm argument: scm is not defined in this project");
     }
 
     private static String available(Collection<BuildArgument> args) {
