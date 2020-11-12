@@ -18,7 +18,6 @@ package net.oneandone.maven.plugins.dockerbuild;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
 import net.oneandone.sushi.fs.file.FileNode;
-import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -30,9 +29,6 @@ import org.apache.maven.project.MavenProject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -99,7 +95,7 @@ public class Build extends Base {
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
         formals = BuildArgument.scan(context.dockerfile());
-        actuals = buildArgs(formals);
+        actuals = new Arguments(context(), getLog(), project, comment, arguments).buildArgs(formals);
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
@@ -132,103 +128,5 @@ public class Build extends Base {
             throw e;
         }
         log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
-    }
-
-    //--
-
-    private static String origin() {
-        try {
-            return System.getProperty("user.name") + '@' + InetAddress.getLocalHost().getCanonicalHostName();
-        } catch (UnknownHostException e) {
-            return "unknown host: " + e.getMessage();
-        }
-    }
-
-    /** compute build argument values and add artifactArguments to context. */
-    private Map<String, String> buildArgs(Map<String, BuildArgument> formals) throws MojoExecutionException, IOException {
-        final String artifactPrefix = "artifact";
-        final String pomPrefix = "pom";
-        final String xPrefix = "build";
-        Map<String, String> result;
-        String property;
-        FileNode src;
-        FileNode dest;
-        String type;
-
-        result = new HashMap<>();
-        for (BuildArgument arg : formals.values()) {
-            if (arg.name.startsWith(artifactPrefix)) {
-                type = arg.name.substring(artifactPrefix.length()).toLowerCase();
-                src = world.file(project.getBuild().getDirectory()).join(buildFinalName + "." + type);
-                src.checkFile();
-                dest = context().join(src.getName());
-                src.copyFile(dest);
-                result.put(arg.name, dest.getName());
-                getLog().info("cp " + src + " " + dest);
-            } else if (arg.name.startsWith(pomPrefix)) {
-                switch (arg.name) {
-                    case "pomScm":
-                        result.put(arg.name, getScm());
-                        break;
-                    default:
-                        throw new MojoExecutionException("unknown pom argument: " + arg.name);
-                }
-            } else if (arg.name.startsWith(xPrefix)) {
-                switch (arg.name) {
-                    case "buildOrigin":
-                        result.put(arg.name, origin());
-                        break;
-                    case "buildComment":
-                        result.put(arg.name, comment);
-                        break;
-                    default:
-                        throw new MojoExecutionException("unknown build argument: " + arg.name);
-                }
-            } else {
-                result.put(arg.name, arg.dflt);
-            }
-        }
-        for (Map.Entry<String, String> entry : arguments.entrySet()) {
-            property = entry.getKey();
-            if (!result.containsKey(property)) {
-                throw new MojoExecutionException("unknown argument: " + property + "\n" + available(formals.values()));
-            }
-            result.put(property, entry.getValue());
-        }
-        for (Map.Entry<String, String> entry : result.entrySet()) {
-            if (entry.getValue() == null) {
-                throw new MojoExecutionException("mandatory argument is missing: " + entry.getKey());
-            }
-        }
-        return result;
-    }
-
-    private String getScm() throws MojoExecutionException {
-        Scm scm;
-        String result;
-
-        scm = project.getScm();
-        result = scm.getDeveloperConnection();
-        if (result != null) {
-            return result;
-        }
-        result = scm.getConnection();
-        if (result != null) {
-            return result;
-        }
-        throw new MojoExecutionException("pomScm argument: scm is not defined in this project");
-    }
-
-    private static String available(Collection<BuildArgument> args) {
-        StringBuilder result;
-
-        result = new StringBuilder();
-        result.append("(available build arguments:");
-        for (BuildArgument arg : args) {
-            result.append(' ');
-            result.append(arg.name);
-        }
-        result.append(")\n");
-        return result.toString();
     }
 }
