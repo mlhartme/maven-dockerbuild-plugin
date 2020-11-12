@@ -91,7 +91,7 @@ public class Context {
     }
 
     public Arguments arguments(Log log) throws IOException {
-        return new Arguments(BuildArgument.scan(directory.join("Dockerfile")), log);
+        return new Arguments(log, BuildArgument.scan(directory.join("Dockerfile")));
     }
 
     public String toString() {

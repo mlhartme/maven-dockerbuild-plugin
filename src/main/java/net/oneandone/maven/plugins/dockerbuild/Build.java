@@ -18,7 +18,7 @@ package net.oneandone.maven.plugins.dockerbuild;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
 import net.oneandone.maven.plugins.dockerbuild.model.Arguments;
-import net.oneandone.maven.plugins.dockerbuild.model.BuildResults;
+import net.oneandone.maven.plugins.dockerbuild.model.BuildListener;
 import net.oneandone.maven.plugins.dockerbuild.model.Context;
 import net.oneandone.maven.plugins.dockerbuild.model.Placeholders;
 import net.oneandone.sushi.fs.file.FileNode;
@@ -112,7 +112,7 @@ public class Build extends Base {
             }
             log.info(cli(repositoryTag, noCache, actuals, context, buildLog));
             try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
-                id = build.exec(new BuildResults(log, logfile)).awaitImageId();
+                id = build.exec(new BuildListener(log, logfile)).awaitImageId();
             }
         } catch (MojoExecutionException e) {
             log.error("build failed");

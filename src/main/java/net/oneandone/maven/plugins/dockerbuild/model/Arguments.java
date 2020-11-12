@@ -30,13 +30,13 @@ import java.util.Map;
 
 /** represents the actual arguments passed to the docker build */
 public class Arguments {
-    private final Map<String, BuildArgument> formals;
     private final Log log;
+    private final Map<String, BuildArgument> formals;
     private final Map<String, String> result;
 
-    public Arguments(Map<String, BuildArgument> formals, Log log) {
-        this.formals = formals;
+    public Arguments(Log log, Map<String, BuildArgument> formals) {
         this.log = log;
+        this.formals = formals;
         this.result = new HashMap<>();
     }
 

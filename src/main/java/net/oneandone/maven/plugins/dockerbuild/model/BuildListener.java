@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-public class BuildResults implements ResultCallback<BuildResponseItem> {
+public class BuildListener implements ResultCallback<BuildResponseItem> {
     private final Log log;
     private final PrintWriter logfile;
     private List<Throwable> errors;
@@ -24,7 +24,7 @@ public class BuildResults implements ResultCallback<BuildResponseItem> {
     private Closeable stream;
     private boolean closed = false;
 
-    public BuildResults(Log log, PrintWriter logfile) {
+    public BuildListener(Log log, PrintWriter logfile) {
         this.log = log;
         this.logfile = logfile;
         this.errors = new ArrayList<>();
