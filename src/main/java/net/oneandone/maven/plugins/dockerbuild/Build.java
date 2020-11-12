@@ -35,7 +35,18 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.maven.plugins.annotations.Component;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactRequest;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
+import org.eclipse.aether.resolution.ArtifactResult;
 
 /**
  * Builds a Docker image.
@@ -48,6 +59,9 @@ public class Build extends Base {
     /** Don't use Docker cache */
     @Parameter(defaultValue = "false")
     private final boolean noCache;
+
+    @Parameter(property = "dockerbuild.library", defaultValue = "com.dockerbuild.library")
+    private final String library;
 
     /** inspired by https://maven.fabric8.io/#image-configuration */
     @Parameter(property = "dockerbuild.image", defaultValue = "%g/%a:%V")
@@ -67,7 +81,19 @@ public class Build extends Base {
     @Parameter(property = "project", required = true, readonly = true)
     private final MavenProject project;
 
+    //--
+
+    @Component
+    private RepositorySystem repoSystem;
+
+    @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
+    private RepositorySystemSession repoSession;
+
+    @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true)
+    private List<RemoteRepository> remoteRepos;
+
     public Build() throws IOException {
+        this.library = null;
         this.dockerbuild = null;
         this.noCache = false;
         this.image = "";
@@ -89,7 +115,7 @@ public class Build extends Base {
 
         log = getLog();
         repositoryTag = new Placeholders(project).resolve(image);
-        context = Context.create(context(), dockerbuild);
+        context = Context.create(resolveDockerbuild(), dockerbuild, context());
         log.info("extracted dockerbuild " + dockerbuild + " to " + context);
         buildLog = buildLog();
         buildLog.getParent().mkdirsOpt();
@@ -142,4 +168,33 @@ public class Build extends Base {
         cli.append(" >" + buildLog);
         return cli.toString();
     }
+
+    private FileNode resolveDockerbuild() throws MojoExecutionException {
+        String gav;
+        Artifact artifact;
+        ArtifactRequest request;
+        ArtifactResult result;
+        FileNode file;
+
+        gav = library + ":" + dockerbuild + ":1.0.1-SNAPSHOT";
+        try {
+            artifact = new DefaultArtifact(gav);
+        } catch (IllegalArgumentException e) {
+            throw new MojoExecutionException("invalid dockerbuild gav: " + gav + ": " + e.getMessage(), e);
+        }
+
+        request = new ArtifactRequest();
+        request.setArtifact(artifact);
+        request.setRepositories(remoteRepos);
+
+        try {
+            result = repoSystem.resolveArtifact(repoSession, request);
+        } catch (ArtifactResolutionException e) {
+            throw new MojoExecutionException(dockerbuild + ": failed to resolve dockerbuild: " + e.getMessage(), e);
+        }
+        file = world.file(result.getArtifact().getFile());
+        getLog().info("resolved " + file.getAbsolute());
+        return file;
+    }
+
 }

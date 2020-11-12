@@ -1,7 +1,6 @@
 package net.oneandone.maven.plugins.dockerbuild.model;
 
 import net.oneandone.sushi.fs.Node;
-import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -16,12 +15,10 @@ import java.util.Iterator;
 import java.util.List;
 
 public class Context {
-    public static Context create(FileNode dest, String dockerbuild) throws IOException, MojoExecutionException {
-        World world;
+    public static Context create(FileNode srcJar, String dockerbuild, FileNode dest) throws IOException, MojoExecutionException {
         Node<?> src;
 
-        world = dest.getWorld();
-        src = world.resource(dockerbuild);
+        src = srcJar.openJar().join(dockerbuild).checkDirectory();
         if (!src.isDirectory()) {
             throw new MojoExecutionException("dockerbuild not found: " + dockerbuild);
         }
