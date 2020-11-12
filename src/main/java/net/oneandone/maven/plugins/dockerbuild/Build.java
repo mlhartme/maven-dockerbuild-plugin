@@ -47,6 +47,9 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
+import org.eclipse.aether.resolution.VersionRangeRequest;
+import org.eclipse.aether.resolution.VersionRangeResolutionException;
+import org.eclipse.aether.resolution.VersionRangeResult;
 
 /**
  * Builds a Docker image.
@@ -55,6 +58,9 @@ import org.eclipse.aether.resolution.ArtifactResult;
 public class Build extends Base {
     @Parameter(required = true)
     private final String dockerbuild;
+
+    @Parameter(required = true)
+    private final String version;
 
     /** Don't use Docker cache */
     @Parameter(defaultValue = "false")
@@ -95,6 +101,7 @@ public class Build extends Base {
     public Build() throws IOException {
         this.library = null;
         this.dockerbuild = null;
+        this.version = null;
         this.noCache = false;
         this.image = "";
         this.comment = "";
@@ -115,6 +122,7 @@ public class Build extends Base {
 
         log = getLog();
         repositoryTag = new Placeholders(project).resolve(image);
+        checkVersion();
         context = Context.create(resolveDockerbuild(), dockerbuild, context());
         log.info("extracted dockerbuild " + dockerbuild + " to " + context);
         buildLog = buildLog();
@@ -169,6 +177,8 @@ public class Build extends Base {
         return cli.toString();
     }
 
+    //-- artifact resolution, see https://maven.apache.org/resolver/maven-resolver-demos/maven-resolver-demo-maven-plugin/xref/index.html
+
     private FileNode resolveDockerbuild() throws MojoExecutionException {
         String gav;
         Artifact artifact;
@@ -176,13 +186,12 @@ public class Build extends Base {
         ArtifactResult result;
         FileNode file;
 
-        gav = library + ":" + dockerbuild + ":1.0.1-SNAPSHOT";
+        gav = library + ":" + dockerbuild + ":" + version;
         try {
             artifact = new DefaultArtifact(gav);
         } catch (IllegalArgumentException e) {
             throw new MojoExecutionException("invalid dockerbuild gav: " + gav + ": " + e.getMessage(), e);
         }
-
         request = new ArtifactRequest();
         request.setArtifact(artifact);
         request.setRepositories(remoteRepos);
@@ -197,4 +206,32 @@ public class Build extends Base {
         return file;
     }
 
+    private void checkVersion() throws MojoExecutionException {
+        String gav;
+        Artifact artifact;
+        VersionRangeRequest request;
+        VersionRangeResult result;
+
+        gav = library + ":" + dockerbuild + ":[" + version + ",)";
+        getLog().info("range: " + gav);
+        try {
+            artifact = new DefaultArtifact(gav);
+        } catch (IllegalArgumentException e) {
+            throw new MojoExecutionException("invalid dockerbuild version gav: " + gav + ": " + e.getMessage(), e);
+        }
+
+
+        request = new VersionRangeRequest();
+        request.setArtifact(artifact);
+        request.setRepositories(remoteRepos);
+
+        try {
+            result = repoSystem.resolveVersionRange(repoSession, request);
+        } catch (VersionRangeResolutionException e) {
+            throw new MojoExecutionException("dockerbuild version check failed: " + gav + ": " + e.getMessage(), e);
+        }
+        if (!version.equals(result.getHighestVersion().toString())) {
+            throw new MojoExecutionException("newer version(s) available: " + result);
+        }
+    }
 }
