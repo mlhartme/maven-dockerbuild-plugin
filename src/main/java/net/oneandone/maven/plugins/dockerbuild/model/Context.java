@@ -1,4 +1,4 @@
-package net.oneandone.maven.plugins.dockerbuild;
+package net.oneandone.maven.plugins.dockerbuild.model;
 
 import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.World;

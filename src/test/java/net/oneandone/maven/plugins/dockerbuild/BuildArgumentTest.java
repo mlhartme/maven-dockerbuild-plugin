@@ -14,6 +14,7 @@ package net.oneandone.maven.plugins.dockerbuild;/*
  * limitations under the License.
  */
 
+import net.oneandone.maven.plugins.dockerbuild.model.BuildArgument;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

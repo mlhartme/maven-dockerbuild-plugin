@@ -17,6 +17,10 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
+import net.oneandone.maven.plugins.dockerbuild.model.Arguments;
+import net.oneandone.maven.plugins.dockerbuild.model.BuildResults;
+import net.oneandone.maven.plugins.dockerbuild.model.Context;
+import net.oneandone.maven.plugins.dockerbuild.model.Placeholders;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;

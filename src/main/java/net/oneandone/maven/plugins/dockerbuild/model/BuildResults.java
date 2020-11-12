@@ -1,4 +1,4 @@
-package net.oneandone.maven.plugins.dockerbuild;
+package net.oneandone.maven.plugins.dockerbuild.model;
 
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.model.BuildResponseItem;
