@@ -38,6 +38,7 @@ public class Arguments {
     private final MavenProject project;
     private final String comment;
     private final Map<String, String> arguments;
+    private final Map<String, String> result;
 
     public static Arguments create(Context context, Log log, MavenProject project, String comment, Map<String, String> arguments) throws IOException {
         Map<String, BuildArgument> formals;
@@ -55,20 +56,18 @@ public class Arguments {
         this.project = project;
         this.comment = comment;
         this.arguments = arguments;
+        this.result = new HashMap<>();
     }
 
     /** compute build argument values and add artifactArguments to context. */
-    public Map<String, String> buildArgs() throws MojoExecutionException, IOException {
+    public Arguments addAll() throws MojoExecutionException, IOException {
         final String artifactPrefix = "artifact";
         final String pomPrefix = "pom";
         final String xPrefix = "build";
-        Map<String, String> result;
-        String property;
         FileNode src;
         FileNode dest;
         String type;
 
-        result = new HashMap<>();
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(artifactPrefix)) {
                 type = arg.name.substring(artifactPrefix.length()).toLowerCase();
@@ -101,6 +100,12 @@ public class Arguments {
                 result.put(arg.name, arg.dflt);
             }
         }
+        return this;
+    }
+
+    public Map<String, String> result() throws MojoExecutionException {
+        String property;
+
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
             property = entry.getKey();
             if (!result.containsKey(property)) {
@@ -126,16 +131,16 @@ public class Arguments {
 
     private String getScm() throws MojoExecutionException {
         Scm scm;
-        String result;
+        String str;
 
         scm = project.getScm();
-        result = scm.getDeveloperConnection();
-        if (result != null) {
-            return result;
+        str = scm.getDeveloperConnection();
+        if (str != null) {
+            return str;
         }
-        result = scm.getConnection();
-        if (result != null) {
-            return result;
+        str = scm.getConnection();
+        if (str != null) {
+            return str;
         }
         throw new MojoExecutionException("pomScm argument: scm is not defined in this project");
     }

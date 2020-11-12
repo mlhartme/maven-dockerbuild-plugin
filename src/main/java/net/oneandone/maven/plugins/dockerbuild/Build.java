@@ -78,7 +78,6 @@ public class Build extends Base {
         String repositoryTag;
         Context context;
         long started;
-        Map<String, BuildArgument> formals;
         Map<String, String> actuals;
         String id;
         BuildImageCmd build;
@@ -94,7 +93,7 @@ public class Build extends Base {
         started = System.currentTimeMillis();
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
-        actuals = Arguments.create(context, getLog(), project, comment, arguments).buildArgs();
+        actuals = Arguments.create(context, getLog(), project, comment, arguments).addAll().result();
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
