@@ -38,6 +38,10 @@ public class Context {
         this.directory = directory;
     }
 
+    public FileNode getDirectory() { // TODO
+        return directory;
+    }
+
     /** tar directory into byte array */
     public FileNode tar() throws IOException {
         FileNode result;

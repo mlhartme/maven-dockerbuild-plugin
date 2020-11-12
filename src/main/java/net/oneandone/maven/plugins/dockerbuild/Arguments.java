@@ -29,17 +29,28 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+/** represents the actual arguments passed to the docker build */
 public class Arguments {
     private final World world;
     private final FileNode context;
+    private final Map<String, BuildArgument> formals;
     private final Log log;
     private final MavenProject project;
     private final String comment;
     private final Map<String, String> arguments;
 
-    public Arguments(FileNode context, Log log, MavenProject project, String comment, Map<String, String> arguments) {
-        this.world = context.getWorld();
-        this.context = context;
+    public static Arguments create(Context context, Log log, MavenProject project, String comment, Map<String, String> arguments) throws IOException {
+        Map<String, BuildArgument> formals;
+
+        formals = BuildArgument.scan(context.dockerfile());
+        return new Arguments(context, formals, log, project, comment, arguments);
+
+    }
+
+    public Arguments(Context context, Map<String, BuildArgument> formals, Log log, MavenProject project, String comment, Map<String, String> arguments) {
+        this.context = context.getDirectory();
+        this.formals = formals;
+        this.world = this.context.getWorld();
         this.log = log;
         this.project = project;
         this.comment = comment;
@@ -47,7 +58,7 @@ public class Arguments {
     }
 
     /** compute build argument values and add artifactArguments to context. */
-    public Map<String, String> buildArgs(Map<String, BuildArgument> formals) throws MojoExecutionException, IOException {
+    public Map<String, String> buildArgs() throws MojoExecutionException, IOException {
         final String artifactPrefix = "artifact";
         final String pomPrefix = "pom";
         final String xPrefix = "build";

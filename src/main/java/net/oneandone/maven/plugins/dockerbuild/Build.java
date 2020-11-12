@@ -94,8 +94,7 @@ public class Build extends Base {
         started = System.currentTimeMillis();
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
-        formals = BuildArgument.scan(context.dockerfile());
-        actuals = new Arguments(context(), getLog(), project, comment, arguments).buildArgs(formals);
+        actuals = Arguments.create(context, getLog(), project, comment, arguments).buildArgs();
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
