@@ -81,7 +81,6 @@ public class Build extends Base {
         Map<String, String> actuals;
         String id;
         BuildImageCmd build;
-        StringBuilder cli;
         FileNode buildLog;
 
         log = getLog();
@@ -93,7 +92,12 @@ public class Build extends Base {
         started = System.currentTimeMillis();
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
-        actuals = Arguments.create(context, getLog(), project, comment, arguments).addAll().result();
+        Arguments a = Arguments.create(context.dockerfile(), log);
+        a.addArtifacts(context, world.file(project.getBuild().getDirectory()), project.getBuild().getFinalName());
+        a.addBuild(comment);
+        a.addPom(project);
+        a.addExplicit(arguments);
+        actuals = a.result();
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
@@ -102,19 +106,7 @@ public class Build extends Base {
             for (Map.Entry<String, String> entry : actuals.entrySet()) {
                 build.withBuildArg(entry.getKey(), entry.getValue());
             }
-            cli = new StringBuilder("docker build -t \"" + repositoryTag + '"');
-            if (noCache) {
-                cli.append(" --no-cache");
-            }
-            for (Map.Entry<String, String> entry : actuals.entrySet()) {
-                cli.append(" --build-arg ");
-                cli.append(entry.getKey());
-                cli.append('=');
-                cli.append(entry.getValue());
-            }
-            cli.append(" " + context);
-            cli.append(" >" + buildLog);
-            log.info(cli.toString());
+            log.info(cli(repositoryTag, noCache, actuals, context, buildLog));
             try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
                 id = build.exec(new BuildResults(log, logfile)).awaitImageId();
             }
@@ -126,5 +118,24 @@ public class Build extends Base {
             throw e;
         }
         log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
+    }
+
+    /** command-line equivalant of the rest call we're using */
+    private static String cli(String repositoryTag, boolean noCache, Map<String, String> actuals, Context context, FileNode buildLog) {
+        StringBuilder cli;
+
+        cli = new StringBuilder("docker build -t \"" + repositoryTag + '"');
+        if (noCache) {
+            cli.append(" --no-cache");
+        }
+        for (Map.Entry<String, String> entry : actuals.entrySet()) {
+            cli.append(" --build-arg ");
+            cli.append(entry.getKey());
+            cli.append('=');
+            cli.append(entry.getValue());
+        }
+        cli.append(" " + context);
+        cli.append(" >" + buildLog);
+        return cli.toString();
     }
 }

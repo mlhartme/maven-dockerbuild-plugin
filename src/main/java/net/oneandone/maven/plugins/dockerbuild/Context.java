@@ -90,7 +90,7 @@ public class Context {
     }
 
     public FileNode dockerfile() {
-        return dockerfile();
+        return directory.join("Dockerfile");
     }
 
     public String toString() {

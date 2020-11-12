@@ -15,7 +15,6 @@
  */
 package net.oneandone.maven.plugins.dockerbuild;
 
-import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -31,61 +30,62 @@ import java.util.Map;
 
 /** represents the actual arguments passed to the docker build */
 public class Arguments {
-    private final World world;
-    private final FileNode context;
     private final Map<String, BuildArgument> formals;
     private final Log log;
-    private final MavenProject project;
-    private final String comment;
-    private final Map<String, String> arguments;
     private final Map<String, String> result;
 
-    public static Arguments create(Context context, Log log, MavenProject project, String comment, Map<String, String> arguments) throws IOException {
-        Map<String, BuildArgument> formals;
-
-        formals = BuildArgument.scan(context.dockerfile());
-        return new Arguments(context, formals, log, project, comment, arguments);
+    public static Arguments create(FileNode dockerfile, Log log) throws IOException {
+        return new Arguments(BuildArgument.scan(dockerfile), log);
 
     }
 
-    public Arguments(Context context, Map<String, BuildArgument> formals, Log log, MavenProject project, String comment, Map<String, String> arguments) {
-        this.context = context.getDirectory();
+    public Arguments(Map<String, BuildArgument> formals, Log log) {
         this.formals = formals;
-        this.world = this.context.getWorld();
         this.log = log;
-        this.project = project;
-        this.comment = comment;
-        this.arguments = arguments;
         this.result = new HashMap<>();
     }
 
     /** compute build argument values and add artifactArguments to context. */
-    public Arguments addAll() throws MojoExecutionException, IOException {
+    public void addArtifacts(Context context, FileNode directory, String artifactName) throws IOException {
         final String artifactPrefix = "artifact";
-        final String pomPrefix = "pom";
-        final String xPrefix = "build";
         FileNode src;
         FileNode dest;
-        String type;
+        String extension;
 
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(artifactPrefix)) {
-                type = arg.name.substring(artifactPrefix.length()).toLowerCase();
-                src = world.file(project.getBuild().getDirectory()).join(project.getBuild().getFinalName() + "." + type);
+                extension = arg.name.substring(artifactPrefix.length()).toLowerCase();
+                src = directory.join(artifactName + "." + extension);
                 src.checkFile();
-                dest = context.join(src.getName());
+                dest = context.getDirectory().join(src.getName());
                 src.copyFile(dest);
                 result.put(arg.name, dest.getName());
                 log.info("cp " + src + " " + dest);
-            } else if (arg.name.startsWith(pomPrefix)) {
+            }
+        }
+    }
+
+    public void addPom(MavenProject project) throws MojoExecutionException {
+        final String pomPrefix = "pom";
+
+        for (BuildArgument arg : formals.values()) {
+            if (arg.name.startsWith(pomPrefix)) {
                 switch (arg.name) {
                     case "pomScm":
-                        result.put(arg.name, getScm());
+                        result.put(arg.name, getScm(project));
                         break;
                     default:
                         throw new MojoExecutionException("unknown pom argument: " + arg.name);
                 }
-            } else if (arg.name.startsWith(xPrefix)) {
+            }
+        }
+    }
+
+    public void addBuild(String comment) throws MojoExecutionException {
+        final String buildPrefix = "build";
+
+        for (BuildArgument arg : formals.values()) {
+            if (arg.name.startsWith(buildPrefix)) {
                 switch (arg.name) {
                     case "buildOrigin":
                         result.put(arg.name, origin());
@@ -96,22 +96,27 @@ public class Arguments {
                     default:
                         throw new MojoExecutionException("unknown build argument: " + arg.name);
                 }
-            } else {
-                result.put(arg.name, arg.dflt);
             }
         }
-        return this;
+    }
+
+    public void addExplicit(Map<String, String> arguments) throws MojoExecutionException {
+        String name;
+
+        for (Map.Entry<String, String> entry : arguments.entrySet()) {
+            name = entry.getKey();
+            if (!formals.containsKey(name)) {
+                throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
+            }
+            result.put(name, entry.getValue());
+        }
     }
 
     public Map<String, String> result() throws MojoExecutionException {
-        String property;
-
-        for (Map.Entry<String, String> entry : arguments.entrySet()) {
-            property = entry.getKey();
-            if (!result.containsKey(property)) {
-                throw new MojoExecutionException("unknown argument: " + property + "\n" + available(formals.values()));
+        for (BuildArgument arg : formals.values()) {
+            if (!result.containsKey(arg.name)) {
+                result.put(arg.name, arg.dflt);
             }
-            result.put(property, entry.getValue());
         }
         for (Map.Entry<String, String> entry : result.entrySet()) {
             if (entry.getValue() == null) {
@@ -121,6 +126,8 @@ public class Arguments {
         return result;
     }
 
+    //--
+
     private static String origin() {
         try {
             return System.getProperty("user.name") + '@' + InetAddress.getLocalHost().getCanonicalHostName();
@@ -129,7 +136,7 @@ public class Arguments {
         }
     }
 
-    private String getScm() throws MojoExecutionException {
+    private String getScm(MavenProject project) throws MojoExecutionException {
         Scm scm;
         String str;
 
