@@ -92,7 +92,7 @@ public class Build extends Base {
         started = System.currentTimeMillis();
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
-        Arguments a = Arguments.create(context.dockerfile(), log);
+        Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), project.getBuild().getFinalName());
         a.addBuild(comment);
         a.addPom(project);

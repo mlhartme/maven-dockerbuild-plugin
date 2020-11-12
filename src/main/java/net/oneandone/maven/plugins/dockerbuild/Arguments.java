@@ -34,11 +34,6 @@ public class Arguments {
     private final Log log;
     private final Map<String, String> result;
 
-    public static Arguments create(FileNode dockerfile, Log log) throws IOException {
-        return new Arguments(BuildArgument.scan(dockerfile), log);
-
-    }
-
     public Arguments(Map<String, BuildArgument> formals, Log log) {
         this.formals = formals;
         this.log = log;

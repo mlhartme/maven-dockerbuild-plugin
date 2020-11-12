@@ -4,6 +4,7 @@ import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
 import org.kamranzafar.jtar.TarEntry;
 import org.kamranzafar.jtar.TarHeader;
 import org.kamranzafar.jtar.TarOutputStream;
@@ -89,8 +90,8 @@ public class Context {
         return result;
     }
 
-    public FileNode dockerfile() {
-        return directory.join("Dockerfile");
+    public Arguments arguments(Log log) throws IOException {
+        return new Arguments(BuildArgument.scan(directory.join("Dockerfile")), log);
     }
 
     public String toString() {
