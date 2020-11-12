@@ -39,7 +39,13 @@ import java.io.Writer;
  */
 @Mojo(name = "push", defaultPhase = LifecyclePhase.DEPLOY, requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
 public class Push extends Base {
+    private String configPath;
+
     public Push() throws IOException {
+    }
+
+    public void initConfigPath(String path) {
+        this.configPath = path;
     }
 
     @Override
@@ -76,24 +82,35 @@ public class Push extends Base {
         }
     }
 
-    private AuthConfig authConfig(String registry) throws MojoFailureException {
+    private AuthConfig authConfig(String registry) throws MojoFailureException, IOException {
         Writer output = new StringWriter();
         Reader input = new StringReader(registry);
         JsonObject json;
         AuthConfig auth;
+        String credentialsHelper;
 
-        // TODO: macos only ...
+        credentialsHelper = "docker-credential-" + credsStore();
+        getLog().debug("credentials-helper: " + credentialsHelper);
         try {
-            world.getWorking().launcher("docker-credential-osxkeychain", "get").exec(output, null, true, input, false);
+            world.getWorking().launcher(credentialsHelper, "get").exec(output, null, true, input, false);
         } catch (Failure failure) {
             throw new MojoFailureException("cannot access docker credentials: " + failure, failure);
         }
         json = JsonParser.parseReader(new StringReader(output.toString())).getAsJsonObject();
-        getLog().info("json: " + json);
         auth = new AuthConfig();
         auth.withUsername(get(json, "Username"));
         auth.withPassword(get(json, "Secret"));
         return auth;
+    }
+
+    /** docker-java loads this file, but it does not store credsStore */
+    private String credsStore() throws IOException {
+        JsonObject json;
+
+        try (Reader src = world.file(configPath).join("config.json").newReader()) {
+            json = JsonParser.parseReader(src).getAsJsonObject();
+        }
+        return get(json, "credsStore");
     }
 
     private static String get(JsonObject obj, String field) {

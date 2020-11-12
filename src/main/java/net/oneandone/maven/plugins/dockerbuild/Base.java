@@ -17,7 +17,6 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
@@ -70,7 +69,7 @@ public abstract class Base extends AbstractMojo {
     }
 
     public void doExecute() throws IOException, MojoExecutionException, MojoFailureException {
-        DockerClientConfig config;
+        DefaultDockerClientConfig config;
 
         config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
         try (DockerHttpClient http = new ZerodepDockerHttpClient.Builder()
@@ -78,8 +77,14 @@ public abstract class Base extends AbstractMojo {
                 .sslConfig(config.getSSLConfig())
                 .build();
              DockerClient docker = DockerClientImpl.getInstance(config, http)) {
+            initConfigPath(config.getDockerConfigPath());
             doExecute(docker);
         }
     }
+
+    /** override this to get access to the configPath */
+    public void initConfigPath(String configPath) {
+    }
+
     public abstract void doExecute(DockerClient docker) throws IOException, MojoExecutionException, MojoFailureException;
 }
