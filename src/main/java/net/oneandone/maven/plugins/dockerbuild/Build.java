@@ -160,7 +160,8 @@ public class Build extends Base {
             }
             throw e;
         }
-        log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
+        log.info("Done: " + repositoryTag);
+        log.debug("id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
     }
 
     /** command-line equivalent of the rest call we're using */
