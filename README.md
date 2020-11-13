@@ -5,29 +5,20 @@ This is Maven plugin to build Docker images. (It does not provide run functional
 Goals: https://mlhartme.github.io/maven-dockerbuild-plugin/plugin-info.html
 
 
-## Shared builds
+## Dockerbuilds
 
-The main features of this plugin is *shared Docker builds*. Shared builds means that the Dockerfile (or more precisely:
-the Docker build context including the Dockerfile) is *not* part of the respective Maven module: it's not part of the source
-tree and it's not specified inline in the pom (like the fabric8 plugin allows). Instead, the Docker build it defined in an artifact;
-the plugin resolved this artifact, unpacks it, and used it to build the image.
+A Dockerbuild is a Maven artifact (a jar file) containing a Dockerfile, optionally with additional file used by the Dockerfile.
+These artifact means are managed centrally in your favorite repository, together, they form the Dockerbuild library. The library
+contains builds for various frameworks.
 
-Shared Docker builds help with:
-* simplify maintenance: we just have to updates a small number shared builds instead of a possibly hug number of projects
-* separation: Java developers can concentrate on their Java build - they don't have to care about the best way to build an image for them,
-  they simply reference the latest shared build that fits their framework/setup. Otherwise, many developers will probably copy-and-paste
-  a Dockerfile and not keep it up-to-date
-* operations: is much easier to keep a small number of different shared builds up and running. Otherwise, you have to check the particular
-  build of every individual application.
-
-Rational: shared builds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common
-approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible). And I want
-to encourage Java developers *not* to copy-paste a Docker build into their project.
+To build an image for a Maven module, you choose the appropriate Dockerbuild from the library. The plugin resolves the Dockerbuild
+(i.e. downloads it if it's not already in your local repository), unpacks it into the build context directory, adds necessary artifacts,
+and runs a Docker build on it.
 
 
-## Configuration
+## Setup
 
-Here's an example:
+You'll typically add this snippet
 
       <plugin>
         <groupId>net.oneandone.maven.plugins</groupId>
@@ -52,10 +43,33 @@ Here's an example:
           <dockerbuild>vanilla-war</dockerbuild>
           <image>contargo.server.lan/cisoops-public/%a:%V</image>
           <arguments>
-            <memory>2048</memory>
           </arguments>
         </configuration>
       </plugin>
+
+to your parent pom. Adjust
+* `library` to point to get groupId of your Dockerbuilds.
+* `image` to start with your Docker registry and to match your naming conventions
+
+If you don't use a suitable parent, yuu can also add it directly to your module, but make sure to properly merge
+it with the usage configuration below.
+
+
+## Usage
+
+Assuming you parent pom is set up as described above, you can start build images by adding
+
+      <plugin>
+        <groupId>net.oneandone.maven.plugins</groupId>
+        <artifactId>dockerbuild</artifactId>
+        <configuration>
+          <dockerbuild>vanilla-war</dockerbuild>
+          <arguments>
+          </arguments>
+        </configuration>
+      </plugin>
+
+to your Maven module. Adjust the `dockerbuild` to fit your application and add arguments as needed.
 
 
 ## Parametrization
@@ -98,6 +112,19 @@ User build arguments to pass additional data into your Dockerfile
 * `buildComment` as specified for the build
 * `buildOrigin` current user and the machine running this build
 
+
+## Rationale
+
+The main rationale behind Dockerbuilds is to keep Dockerfiles separate from the Maven module your using it for. This helps to:
+* simplify maintenance: we just have to updates a small number Dockerbuilds of a possibly hug number Dockerfile spread in Maven modules
+* separation: Java developers can concentrate on their Java build - they don't have to care about the latest best practice to build an
+  image for them; instead, they simply pick the latest Dockerbuild that fits their framework/setup.
+* avoid copy paste: nobody's forced to Google for suitable Dockerfiles - that could get copied to the Maven module - and easily become
+  unmaintained.
+* operations: is much easier to keep a small number Dockerbuild up-to-date and in good shape.
+
+Dockerbuilds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common
+approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible).
 
 ## Implementation
 
