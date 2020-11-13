@@ -52,38 +52,39 @@ import org.eclipse.aether.resolution.VersionRangeResolutionException;
 import org.eclipse.aether.resolution.VersionRangeResult;
 
 /**
- * Builds a Docker image.
+ * Builds a Docker image for this Maven module.
  */
 @Mojo(name = "build", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
 public class Build extends Base {
-    @Parameter(required = true)
-    private final String dockerbuild;
-
-    @Parameter()
-    private final String version;
-
-    /** Don't use Docker cache */
-    @Parameter(defaultValue = "false")
-    private final boolean noCache;
-
+    /** The maven groupId that contains the available docker builds */
     @Parameter(property = "dockerbuild.library", defaultValue = "com.dockerbuild.library")
     private final String library;
 
-    /** inspired by https://maven.fabric8.io/#image-configuration */
+    /** Name of the dockerbuild to use. */
+    @Parameter(required = true)
+    private final String dockerbuild;
+
+    /** Version of the dockerbuild. If specified, this has to be the latest version. Otherwise, the latest version is used automatically. */
+    @Parameter()
+    private final String version;
+
+    /** Don't use Docker build cache */
+    @Parameter(property = "dockerbuild.noCache", defaultValue = "false")
+    private final boolean noCache;
+
+    /** Image tag created by this build. Provides placeholders inspired by https://maven.fabric8.io/#image-configuration */
     @Parameter(property = "dockerbuild.image", defaultValue = "%g/%a:%V")
     private final String image;
 
-    /** Explicit comment to add to image */
+    /** Comment passed to the buildComment argument. */
     @Parameter(property = "dockerbuild.comment", defaultValue = "")
     private final String comment;
 
-    /** Dockerfile argument */
+    /** Explicit argument values passed to the build. */
     @Parameter
     private Map<String, String> arguments;
 
-    @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
-    private String buildFinalName;
-
+    /** Used internally */
     @Parameter(property = "project", required = true, readonly = true)
     private final MavenProject project;
 
@@ -92,9 +93,11 @@ public class Build extends Base {
     @Component
     private RepositorySystem repoSystem;
 
+    /** Used internally */
     @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
     private RepositorySystemSession repoSession;
 
+    /** Used internally */
     @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true)
     private List<RemoteRepository> remoteRepos;
 
