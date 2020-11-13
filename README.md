@@ -2,6 +2,9 @@
 
 This is Maven plugin to build Docker images. (It does not provide run functionality.)
 
+Goals: https://mlhartme.github.io/maven-dockerbuild-plugin/plugin-info.html
+
+
 ## Shared builds
 
 The main features of this plugin is *shared Docker builds*. Shared builds means that the Dockerfile (or more precisely:
