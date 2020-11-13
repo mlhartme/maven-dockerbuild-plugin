@@ -30,8 +30,15 @@ Here's an example:
         <version>1.0.0-SNAPSHOT</version>
         <executions>
           <execution>
+            <id>dockerbuild-package</id>
             <goals>
               <goal>build</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>dockerbuild-deploy</id>
+            <goals>
+              <goal>push</goal>
             </goals>
           </execution>
         </executions>

@@ -126,9 +126,9 @@ public class Build extends Base {
         repositoryTag = new Placeholders(project).resolve(image);
         jar = resolveDockerbuild();
         contextDir = context();
-        log.info("cd " + contextDir);
-        world.setWorking(contextDir);
-        log.info("jar xf " + jar);
+        log.info("rm -rf " + contextDir + "; mkdir " + contextDir);
+        log.info("(cd " + contextDir + " && jar xf " + jar + ")");
+
         context = Context.create(jar, dockerbuild, contextDir);
         buildLog = buildLog();
         buildLog.getParent().mkdirsOpt();
@@ -149,7 +149,7 @@ public class Build extends Base {
             for (Map.Entry<String, String> entry : actuals.entrySet()) {
                 build.withBuildArg(entry.getKey(), entry.getValue());
             }
-            log.info(cli(build) + " >" + buildLog);
+            log.info(cli(build, contextDir) + " >" + buildLog);
             try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
                 id = build.exec(new BuildListener(log, logfile)).awaitImageId();
             }
@@ -164,20 +164,22 @@ public class Build extends Base {
     }
 
     /** command-line equivalent of the rest call we're using */
-    private static String cli(BuildImageCmd cmd) {
+    private static String cli(BuildImageCmd cmd, FileNode context) {
         StringBuilder cli;
 
         cli = new StringBuilder("docker build -t \"" + cmd.getTags().iterator().next() + '"');
         if (cmd.hasNoCacheEnabled()) {
             cli.append(" --no-cache");
         }
+        cli.append(" \\\n");
         for (Map.Entry<String, String> entry : cmd.getBuildArgs().entrySet()) {
-            cli.append(" --build-arg ");
+            cli.append("           --build-arg ");
             cli.append(entry.getKey());
             cli.append('=');
             cli.append(entry.getValue());
+            cli.append(" \\\n");
         }
-        cli.append(" .");
+        cli.append(" " + context);
         return cli.toString();
     }
 
