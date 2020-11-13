@@ -1,14 +1,15 @@
 # Maven Dockerbuild Plugin
 
-This is Maven plugin to build Docker images. It'a not intendented to run images (e.g. for testing).
+This is Maven plugin to build Docker images. (It does not provide run functionality.)
 
 ## Shared builds
 
 The main features of this plugin is *shared Docker builds*. Shared builds means that the Dockerfile (or more precisely:
-the Docker build context including the Dockerfile) is *not* part of the respective Maven module or projects, i.e. it's not part of the source
-tree and it's not specified inline in the pom (like the fabric8 plugin allows). Instead, the Docker build it loaded from a central, shared location.
+the Docker build context including the Dockerfile) is *not* part of the respective Maven module: it's not part of the source
+tree and it's not specified inline in the pom (like the fabric8 plugin allows). Instead, the Docker build it defined in an artifact;
+the plugin resolved this artifact, unpacks it, and used it to build the image.
 
-We hope to benefit form Shared Docker build because
+Shared Docker builds help with:
 * simplify maintenance: we just have to updates a small number shared builds instead of a possibly hug number of projects
 * separation: Java developers can concentrate on their Java build - they don't have to care about the best way to build an image for them,
   they simply reference the latest shared build that fits their framework/setup. Otherwise, many developers will probably copy-and-paste
@@ -16,7 +17,8 @@ We hope to benefit form Shared Docker build because
 * operations: is much easier to keep a small number of different shared builds up and running. Otherwise, you have to check the particular
   build of every individual application.
 
-Rational: shared builds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins, and I want
+Rational: shared builds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common
+approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible). And I want
 to encourage Java developers *not* to copy-paste a Docker build into their project.
 
 
@@ -55,8 +57,8 @@ Here's an example:
 
 ## Parametrization
 
-Dockerfiles can be parameterized with arguments, i.e. using the `ARG` directive. You can set arguments in the plugin configuration inside
-the `arguments` section, e.g.
+Dockerfiles can be parameterized using the `ARG` instruction. You can set these arguments in the plugin configuration inside
+the `arguments` element, e.g.
 
     <configuration>
       ...
@@ -68,14 +70,15 @@ the `arguments` section, e.g.
 
 passes 2048 to the `memory` Dockerfile argument.
 
-In addition, the plugin automatically assigns various types of arguments. Argument types are distinguished by their name prefix.
+In addition, the plugin automatically assigns various types of arguments, depending on their name prefix. E.g. pom arguments are arguments
+starting with `pom`.
 
 ### Artifact arguments
 
-Uee artifact arguments to add Maven artifacts the Docker build context.
+Use artifact arguments to add Maven artifacts the Docker build context.
 
 * `artifactWar` copies the war file into the build context and sets the argument to the respective path
-* `artifactJar` copies the jar file into the build context and sets the argument to ths respective path
+* `artifactJar` copies the jar file into the build context and sets the argument to the respective path
 
 
 ### Pom arguments
@@ -95,7 +98,7 @@ User build arguments to pass additional data into your Dockerfile
 
 ## Implementation
 
-This plugin is pretty simple:
+This plugin is pretty simple. The build plugin prints equivalent build commands to logs what it does:
 * resolve artifact containing the docker build
 * unpack into target/dockerfile
 * copy artifact arguments into this directory
