@@ -22,7 +22,29 @@ to encourage Java developers *not* to copy-paste a Docker build into their proje
 
 ## Configuration
 
-`dockerbuild` specifies the Dockerbuild to use
+Here's an example:
+
+      <plugin>
+        <groupId>net.oneandone.maven.plugins</groupId>
+        <artifactId>dockerbuild</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <library>com.ionos.maven.plugins.dockerbuild.library</library>
+          <dockerbuild>vanilla-war</dockerbuild>
+          <image>contargo.server.lan/cisoops-public/%a:%V</image>
+          <arguments>
+            <memory>2048</memory>
+          </arguments>
+        </configuration>
+      </plugin>
+
 
 ## Parametrization
 

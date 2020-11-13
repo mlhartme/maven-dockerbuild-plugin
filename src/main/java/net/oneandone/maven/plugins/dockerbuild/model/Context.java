@@ -18,7 +18,7 @@ public class Context {
     public static Context create(FileNode srcJar, String dockerbuild, FileNode dest) throws IOException, MojoExecutionException {
         Node<?> src;
 
-        src = srcJar.openJar().join(dockerbuild).checkDirectory();
+        src = srcJar.openJar().checkDirectory();
         if (!src.isDirectory()) {
             throw new MojoExecutionException("dockerbuild not found: " + dockerbuild);
         }

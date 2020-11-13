@@ -59,7 +59,7 @@ public class Build extends Base {
     @Parameter(required = true)
     private final String dockerbuild;
 
-    @Parameter(required = true)
+    @Parameter()
     private final String version;
 
     /** Don't use Docker cache */
@@ -115,6 +115,7 @@ public class Build extends Base {
         String repositoryTag;
         Context context;
         long started;
+        FileNode jar;
         Map<String, String> actuals;
         String id;
         BuildImageCmd build;
@@ -122,9 +123,9 @@ public class Build extends Base {
 
         log = getLog();
         repositoryTag = new Placeholders(project).resolve(image);
-        checkVersion();
-        context = Context.create(resolveDockerbuild(), dockerbuild, context());
-        log.info("extracted dockerbuild " + dockerbuild + " to " + context);
+        jar = resolveDockerbuild();
+        log.info("cd " + context() + " && jar xf " + jar);
+        context = Context.create(jar, dockerbuild, context());
         buildLog = buildLog();
         buildLog.getParent().mkdirsOpt();
         started = System.currentTimeMillis();
@@ -186,7 +187,8 @@ public class Build extends Base {
         ArtifactResult result;
         FileNode file;
 
-        gav = library + ":" + dockerbuild + ":" + version;
+        gav = library + ":" + dockerbuild + ":" + checkedVersion();
+        getLog().info("resolve " + gav);
         try {
             artifact = new DefaultArtifact(gav);
         } catch (IllegalArgumentException e) {
@@ -202,36 +204,40 @@ public class Build extends Base {
             throw new MojoExecutionException(dockerbuild + ": failed to resolve dockerbuild: " + e.getMessage(), e);
         }
         file = world.file(result.getArtifact().getFile());
-        getLog().info("resolved " + file.getAbsolute());
         return file;
     }
 
-    private void checkVersion() throws MojoExecutionException {
+    private String checkedVersion() throws MojoExecutionException {
         String gav;
         Artifact artifact;
         VersionRangeRequest request;
         VersionRangeResult result;
 
-        gav = library + ":" + dockerbuild + ":[" + version + ",)";
-        getLog().info("range: " + gav);
+        gav = library + ":" + dockerbuild + ":[" + (version == null ? "0" : version) + ",)";
         try {
             artifact = new DefaultArtifact(gav);
         } catch (IllegalArgumentException e) {
             throw new MojoExecutionException("invalid dockerbuild version gav: " + gav + ": " + e.getMessage(), e);
         }
-
-
         request = new VersionRangeRequest();
         request.setArtifact(artifact);
         request.setRepositories(remoteRepos);
-
         try {
             result = repoSystem.resolveVersionRange(repoSession, request);
         } catch (VersionRangeResolutionException e) {
             throw new MojoExecutionException("dockerbuild version check failed: " + gav + ": " + e.getMessage(), e);
         }
-        if (!version.equals(result.getHighestVersion().toString())) {
-            throw new MojoExecutionException("newer version(s) available: " + result);
+        getLog().debug("available versions: " + result.getVersions());
+        if (version == null) {
+            return result.getHighestVersion().toString();
+        } else {
+            if (result.getHighestVersion() == null) {
+                throw new MojoExecutionException(gav + ": no versions available");
+            }
+            if (!version.equals(result.getHighestVersion().toString())) {
+                throw new MojoExecutionException("newer version(s) available: " + result);
+            }
+            return version;
         }
     }
 }
