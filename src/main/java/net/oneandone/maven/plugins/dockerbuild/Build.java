@@ -113,6 +113,7 @@ public class Build extends Base {
     public void doExecute(DockerClient docker) throws IOException, MojoExecutionException {
         Log log;
         String repositoryTag;
+        FileNode contextDir;
         Context context;
         long started;
         FileNode jar;
@@ -124,8 +125,11 @@ public class Build extends Base {
         log = getLog();
         repositoryTag = new Placeholders(project).resolve(image);
         jar = resolveDockerbuild();
-        log.info("cd " + context() + " && jar xf " + jar);
-        context = Context.create(jar, dockerbuild, context());
+        contextDir = context();
+        log.info("cd " + contextDir);
+        world.setWorking(contextDir);
+        log.info("jar xf " + jar);
+        context = Context.create(jar, dockerbuild, contextDir);
         buildLog = buildLog();
         buildLog.getParent().mkdirsOpt();
         started = System.currentTimeMillis();
@@ -145,7 +149,7 @@ public class Build extends Base {
             for (Map.Entry<String, String> entry : actuals.entrySet()) {
                 build.withBuildArg(entry.getKey(), entry.getValue());
             }
-            log.info(cli(repositoryTag, noCache, actuals, context, buildLog));
+            log.info(cli(build) + " >" + buildLog);
             try (PrintWriter logfile = new PrintWriter(buildLog.newWriter())) {
                 id = build.exec(new BuildListener(log, logfile)).awaitImageId();
             }
@@ -159,22 +163,21 @@ public class Build extends Base {
         log.info("Done: tag=" + repositoryTag + " id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
     }
 
-    /** command-line equivalant of the rest call we're using */
-    private static String cli(String repositoryTag, boolean noCache, Map<String, String> actuals, Context context, FileNode buildLog) {
+    /** command-line equivalent of the rest call we're using */
+    private static String cli(BuildImageCmd cmd) {
         StringBuilder cli;
 
-        cli = new StringBuilder("docker build -t \"" + repositoryTag + '"');
-        if (noCache) {
+        cli = new StringBuilder("docker build -t \"" + cmd.getTags().iterator().next() + '"');
+        if (cmd.hasNoCacheEnabled()) {
             cli.append(" --no-cache");
         }
-        for (Map.Entry<String, String> entry : actuals.entrySet()) {
+        for (Map.Entry<String, String> entry : cmd.getBuildArgs().entrySet()) {
             cli.append(" --build-arg ");
             cli.append(entry.getKey());
             cli.append('=');
             cli.append(entry.getValue());
         }
-        cli.append(" " + context);
-        cli.append(" >" + buildLog);
+        cli.append(" .");
         return cli.toString();
     }
 
