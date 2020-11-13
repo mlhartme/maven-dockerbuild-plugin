@@ -16,9 +16,7 @@ Shared Docker builds help with:
 * Separation: Java developers can concentrate on their Java build - they don't have to care about the best way to build an image for them, they simply reference the latest shared build that fits their framework/setup. Otherwise, many developers will probably copy-and-paste a Dockerfile and not keep it up-to-date
 * Operations: it is much easier to keep a small number of different shared builds up and running. Otherwise, you'd have to check the particular build of every individual application.
 
-Rational: shared builds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common
-approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible). And I want
-to encourage Java developers *not* to copy-paste a Docker build into their project.
+Rationale: shared builds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible). And I want to encourage Java developers *not* to copy-paste a Docker build into their project.
 
 
 ## Configuration
