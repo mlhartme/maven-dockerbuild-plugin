@@ -1,6 +1,6 @@
 # Maven Dockerbuild Plugin
 
-This is Maven plugin to build Docker images. (It does not provide run functionality.)
+This is a Maven plugin to build Docker images. (It does not provide run functionality.)
 
 Goals: https://mlhartme.github.io/maven-dockerbuild-plugin/plugin-info.html
 
@@ -14,7 +14,6 @@ contains builds for various frameworks.
 To build an image for a Maven module, you choose the appropriate Dockerbuild from the library. The plugin resolves the Dockerbuild
 (i.e. downloads it if it's not already in your local repository), unpacks it into the build context directory, adds necessary artifacts,
 and runs a Docker build on it.
-
 
 ## Setup
 
@@ -72,10 +71,10 @@ Assuming you parent pom is set up as described above, you can start build images
 to your Maven module. Adjust the `dockerbuild` to fit your application and add arguments as needed.
 
 
-## Parametrization
+## Parameterization
 
 Dockerfiles can be parameterized using the `ARG` instruction. You can set these arguments in the plugin configuration inside
-the `arguments` element, e.g.
+the `arguments` element; e.g.
 
     <configuration>
       ...
@@ -92,7 +91,7 @@ starting with `pom`.
 
 ### Artifact arguments
 
-Use artifact arguments to add Maven artifacts the Docker build context.
+Use artifact arguments to add Maven artifacts to the Docker build context.
 
 * `artifactWar` copies the war file into the build context and sets the argument to the respective path
 * `artifactJar` copies the jar file into the build context and sets the argument to the respective path
@@ -100,14 +99,14 @@ Use artifact arguments to add Maven artifacts the Docker build context.
 
 ### Pom arguments
 
-Use pom argument to pass pom data into you Dockerfile.
+Use pom arguments to pass pom data into you Dockerfile.
 
 * `pomScm`  scm developerConnection or - if not set - connection
 
 
-### Build argument
+### Build arguments
 
-User build arguments to pass additional data into your Dockerfile
+Use build arguments to pass additional data into your Dockerfile.
 
 * `buildComment` as specified for the build
 * `buildOrigin` current user and the machine running this build
@@ -116,24 +115,24 @@ User build arguments to pass additional data into your Dockerfile
 ## Rationale
 
 The main rationale behind Dockerbuilds is to keep Dockerfiles separate from the Maven module your using it for. This helps to:
-* simplify maintenance: we just have to updates a small number Dockerbuilds of a possibly hug number Dockerfile spread in Maven modules
-* separation: Java developers can concentrate on their Java build - they don't have to care about the latest best practice to build an
+* Simplify maintenance: we just have to update a small number Dockerbuilds instead of a possibly hug number of Dockerfile spread in Maven modules
+* Separation: Java developers can concentrate on their Java build - they don't have to care about the latest best practice to build an
   image for them; instead, they simply pick the latest Dockerbuild that fits their framework/setup.
-* avoid copy paste: nobody's forced to Google for suitable Dockerfiles - that could get copied to the Maven module - and easily become
+* Avoid copy paste: nobody's forced to Google for suitable Dockerfiles - that could get copied to the Maven module - and easily become
   unmaintained.
-* operations: is much easier to keep a small number Dockerbuild up-to-date and in good shape.
+* Operations: is much easier to keep a small number of Dockerbuild in good shape (in particular: )updated with security fixes).
 
 Dockerbuilds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common
 approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible).
 
 ## Implementation
 
-This plugin is pretty simple. The build plugin prints equivalent build commands to logs what it does:
+This plugin is pretty simple. The build plugin prints equivalent build commands to log what it does:
 * resolve artifact containing the docker build
 * unpack into target/dockerfile
 * copy artifact arguments into this directory
-* user Dockers Java Client API to build the image;
-  note that the plugin outputs the equicalent docker command line call to document precisely that it does - the command line is *not* used
+* use Dockers Java Client API to build the image;
+  note that the plugin outputs the equivalent docker command line call to document precisely what it does - the command line is *not* used
 
 
 ## Links
