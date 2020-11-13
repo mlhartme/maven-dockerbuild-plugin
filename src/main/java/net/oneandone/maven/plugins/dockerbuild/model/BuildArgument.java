@@ -27,13 +27,11 @@ public class BuildArgument {
         BuildArgument buildArgument;
 
         result = new HashMap<>();
-        if (file.isFile()) {
-            for (String line : file.readLines()) {
-                buildArgument = scan(line);
-                if (buildArgument != null) {
-                    if (result.put(buildArgument.name, buildArgument) != null) {
-                        throw new IOException("duplicate variable: " + buildArgument.name);
-                    }
+        for (String line : file.readLines()) {
+            buildArgument = scan(line);
+            if (buildArgument != null) {
+                if (result.put(buildArgument.name, buildArgument) != null) {
+                    throw new IOException("duplicate variable: " + buildArgument.name);
                 }
             }
         }

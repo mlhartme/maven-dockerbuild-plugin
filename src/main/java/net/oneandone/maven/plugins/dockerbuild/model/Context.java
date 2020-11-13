@@ -26,7 +26,7 @@ public class Context {
             dest.deleteTree();
         }
         dest.mkdirsOpt();
-        src.copyDirectory(dest);
+        src.copyDirectory(dest, src.getWorld().filter().includeAll().exclude("META-INF", "META-INF/**/*"));
         return new Context(dest);
     }
 

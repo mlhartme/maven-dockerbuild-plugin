@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
@@ -12,10 +11,9 @@
   <name>Maven Dockerbuild Plugin</name>
   <url>https://github.com/mlhartme/maven-dockerbuild-plugin</url>
 
-  <description>Maven plugin to build Docker images from shared Docker builds.
-    The main goal is to keep Docker builds in a central location and not spread
-    in every application that wants to build an image.
-    The plugin can set builds arguments, e.g. to pass artifacts.
+  <description>Maven plugin to build Docker images from a Dockerfile. The main idea is to store this Dockerfile in a *dockerbuild* artifact
+    and manage it centrally in your favorite Naven repository. To build an image, this plugin resolves the dockerbuild artifact, unpacks it
+    into the build context directory, adds necessary artifacts, and runs a Docker build on it.
   </description>
 
   <groupId>net.oneandone.maven.plugins</groupId>
