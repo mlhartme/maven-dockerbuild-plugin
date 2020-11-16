@@ -17,6 +17,8 @@ adds necessary artifacts, and runs the Docker daemone on it.
 
 ## Setup
 
+Prerequisite: Docker installed, with permissions for the current user.
+
 You'll typically add a snippet like this
 
       <plugin>

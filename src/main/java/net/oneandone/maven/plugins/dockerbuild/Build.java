@@ -241,12 +241,12 @@ public class Build extends Base {
             throw new MojoExecutionException("dockerbuild version check failed: " + gav + ": " + e.getMessage(), e);
         }
         getLog().debug("available versions: " + result.getVersions());
+        if (result.getHighestVersion() == null) {
+            throw new MojoExecutionException(gav + ": no versions available");
+        }
         if (version == null) {
             return result.getHighestVersion().toString();
         } else {
-            if (result.getHighestVersion() == null) {
-                throw new MojoExecutionException(gav + ": no versions available");
-            }
             if (!version.equals(result.getHighestVersion().toString())) {
                 throw new MojoExecutionException("newer version(s) available: " + result);
             }
