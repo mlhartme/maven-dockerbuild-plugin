@@ -39,7 +39,7 @@ You'll typically add a snippet like this
         </executions>
         <configuration>
           <library>com.ionos.maven.plugins.dockerbuild.library</library>
-          <dockerbuild>vanilla-war</dockerbuild>
+          <dockerbuild>tomcat-war</dockerbuild>
           <image>contargo.server.lan/cisoops-public/%a:%V</image>
           <arguments>
           </arguments>
