@@ -64,7 +64,11 @@ public class Build extends Base {
     @Parameter(required = true)
     private final String dockerbuild;
 
-    /** Version of the dockerbuild. If specified, this has to be the latest version. Otherwise, the latest version is used automatically. */
+    /**
+     * Version of the Dockerbuild to use. This plugin always uses the latest available version of the Dockerbuild; this parameter specifies
+     * how to deal with version updates. Don't specify a version to pick the latest version without interaction.
+     * Specify a version if you want to know about version updates: as long as you've specified the latest version, the build works normally;
+     * if a newer build becomes available, the build fails with an error message indicating the latest version. */
     @Parameter()
     private final String version;
 

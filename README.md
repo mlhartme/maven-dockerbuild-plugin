@@ -1,23 +1,23 @@
 # Maven Dockerbuild Plugin
 
-This is a Maven plugin to build Docker images. (It does not provide run functionality.)
+This is a Maven plugin to build Docker images. It does not provide run functionality.
 
 Goals: https://mlhartme.github.io/maven-dockerbuild-plugin/plugin-info.html
 
 
 ## Dockerbuilds
 
-A Dockerbuild is a Maven artifact (a jar file) containing a Dockerfile, optionally with additional file used by the Dockerfile.
-These artifact means are managed centrally in your favorite repository, together, they form the Dockerbuild library. The library
-contains builds for various frameworks.
+A dockerbuild is a Maven artifact (a jar file) containing a Dockerfile, optionally with additional files used by the Dockerfile.
+Artifacts are managed centrally in your favorite repository, the set of all dockerbuilds is called the dockerbuild library.
+The library provides builds for the different frameworks in use, like standard war files or String boot.
 
-To build an image for a Maven module, you choose the appropriate Dockerbuild from the library. The plugin resolves the Dockerbuild
-(i.e. downloads it if it's not already in your local repository), unpacks it into the build context directory, adds necessary artifacts,
-and runs a Docker build on it.
+To build an image for a Maven project (or a module in a multi-module build), you choose the appropriate dockerbuild from the library.
+The plugin resolves it (i.e. downloads the jar to the local repository - if necessary), unpacks it into the build context directory,
+adds necessary artifacts, and runs the Docker daemone on it.
 
 ## Setup
 
-You'll typically add this snippet
+You'll typically add a snippet like this
 
       <plugin>
         <groupId>net.oneandone.maven.plugins</groupId>
@@ -50,19 +50,19 @@ to your parent pom. Adjust
 * `library` to point to get groupId of your Dockerbuilds.
 * `image` to start with your Docker registry and to match your naming conventions
 
-If you don't use a suitable parent, yuu can also add it directly to your module, but make sure to properly merge
+If you don't manage a separate parent pom, yuu can also add it directly to your module, but make sure to properly merge
 it with the usage configuration below.
 
 
 ## Usage
 
-Assuming you parent pom is set up as described above, you can start build images by adding
+Assuming your parent pom is set up as described above, you can start build images by adding
 
       <plugin>
         <groupId>net.oneandone.maven.plugins</groupId>
         <artifactId>dockerbuild</artifactId>
         <configuration>
-          <dockerbuild>vanilla-war</dockerbuild>
+          <dockerbuild>tomcat-war</dockerbuild>
           <arguments>
           </arguments>
         </configuration>
@@ -73,7 +73,7 @@ to your Maven module. Adjust the `dockerbuild` to fit your application and add a
 
 ## Parameterization
 
-Dockerfiles can be parameterized using the `ARG` instruction. You can set these arguments in the plugin configuration inside
+Dockerfiles can be parameterized using Dockers `ARG` instruction. You can set these arguments in the plugin configuration inside
 the `arguments` element; e.g.
 
     <configuration>
@@ -88,14 +88,6 @@ passes 2048 to the `memory` Dockerfile argument.
 
 In addition, the plugin automatically assigns various types of arguments, depending on their name prefix. E.g. pom arguments are arguments
 starting with `pom`.
-
-### Artifact arguments
-
-Use artifact arguments to add Maven artifacts to the Docker build context.
-
-* `artifactWar` copies the war file into the build context and sets the argument to the respective path
-* `artifactJar` copies the jar file into the build context and sets the argument to the respective path
-
 
 ### Pom arguments
 
@@ -112,27 +104,42 @@ Use build arguments to pass additional data into your Dockerfile.
 * `buildOrigin` current user and the machine running this build
 
 
+### Artifact arguments
+
+Use artifact arguments to add Maven artifacts to the Docker build context. Artifact arguments behave a bit different compared to the other
+argument: they copy the artifact into the build context, and they are set to resulting path, relative to the build context.
+
+* `artifactWar` copies the war file into the build context and sets the argument to the respective path
+* `artifactJar` copies the jar file into the build context and sets the argument to the respective path
+
+
 ## Rationale
 
-The main rationale behind Dockerbuilds is to keep Dockerfiles separate from the Maven module your using it for. This helps to:
-* Simplify maintenance: we just have to update a small number Dockerbuilds instead of a possibly hug number of Dockerfile spread in Maven modules
+The main rationale behind dockerbuilds is to keep Dockerfiles separate from the Maven project your using it for. This helps to:
+* Simplify maintenance: we just have to update a small number dockerbuilds instead of a possibly hug number of Dockerfile spread in Maven projects
 * Separation: Java developers can concentrate on their Java build - they don't have to care about the latest best practice to build an
-  image for them; instead, they simply pick the latest Dockerbuild that fits their framework/setup.
+  image for them; instead, they simply pick the latest dockerbuild that fits their framework/setup.
 * Avoid copy paste: nobody's forced to Google for suitable Dockerfiles - that could get copied to the Maven module - and easily become
   unmaintained.
-* Operations: is much easier to keep a small number of Dockerbuild in good shape (in particular: )updated with security fixes).
+* Operations: is much easier to keep a small number of dockerbuild in good shape (in particular: )updated with security fixes).
 
-Dockerbuilds is the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins (a common
-approach to get close to this: provide shared base images and keep the Dockerfile in maven as small as possible).
+The price you have to pay: you cannot quickly adjust a Dockerfile for your particular Maven project - you have to adjust a shared version
+in your Dockerfile library.
+
+Dockerbuilds are the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins. A common
+approach to get close is to provide central base images and use a simple Dockerfile in every Maven project to glue things together.
+
 
 ## Implementation
 
 This plugin is pretty simple. The build plugin prints equivalent build commands to log what it does:
-* resolve artifact containing the docker build
-* unpack into target/dockerfile
+* resolve artifact containing the Dockerfile
+* unpack into `target/dockerbuild/context`
 * copy artifact arguments into this directory
 * use Dockers Java Client API to build the image;
-  note that the plugin outputs the equivalent docker command line call to document precisely what it does - the command line is *not* used
+
+Note that the plugin does not actually use command-line call it prints to the console -- this is just to Document hat it does and to simplify
+manual testing, you can copy-and-paste the commands to retry your build.
 
 
 ## Links
