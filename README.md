@@ -1,23 +1,24 @@
 # Maven Dockerbuild Plugin
 
-This is a Maven plugin to build Docker images. It does not provide run functionality.
+This is a Maven plugin to build Docker images. It does not provide functionality to run images.
 
 Goals: https://mlhartme.github.io/maven-dockerbuild-plugin/plugin-info.html
 
 
 ## Dockerbuilds
 
-A dockerbuild is a Maven artifact (a jar file) containing a Dockerfile, optionally with additional files used by the Dockerfile.
-Artifacts are managed centrally in your favorite repository, the set of all dockerbuilds is called the dockerbuild library.
-The library provides builds for the different frameworks in use, like standard war files or String boot.
+A dockerbuild is a Maven artifact (a jar file) containing a Dockerfile, optionally with additional files used by the Dockerfile
+(for example configuration files you want to add to the image). Dockerbuilds are managed centrally in your favorite repository,
+the set of all dockerbuilds is called the dockerbuild library. The library provides builds for the different frameworks in use,
+like tomcat-war files or Spring boot.
 
 To build an image for a Maven project (or a module in a multi-module build), you choose the appropriate dockerbuild from the library.
 The plugin resolves it (i.e. downloads the jar to the local repository - if necessary), unpacks it into the build context directory,
-adds necessary artifacts, and runs the Docker daemone on it.
+adds necessary artifacts, and runs the Docker daemon on it.
 
 ## Setup
 
-Prerequisite: Docker installed, with permissions for the current user.
+Prerequisite: Docker installed, accessible for the current user.
 
 You'll typically add a snippet like this
 
@@ -43,39 +44,38 @@ You'll typically add a snippet like this
           <library>com.ionos.maven.plugins.dockerbuild.library</library>
           <dockerbuild>tomcat-war</dockerbuild>
           <image>contargo.server.lan/cisoops-public/%a:%V</image>
-          <arguments>
-          </arguments>
         </configuration>
       </plugin>
 
 to your parent pom. Adjust
-* `library` to point to get groupId of your Dockerbuilds.
+* `library` to point to get groupId of your dockerbuilds
 * `image` to start with your Docker registry and to match your naming conventions
 
-If you don't manage a separate parent pom, yuu can also add it directly to your module, but make sure to properly merge
+If you don't manage a separate parent pom, you can also add it directly to your project pom, but make sure to properly merge
 it with the usage configuration below.
 
 
 ## Usage
 
-Assuming your parent pom is set up as described above, you can start build images by adding
+Assuming your parent pom is set up as described above, you can start build images right away. If you want to specify arguements,
+or override parent condifuration, add something like
 
       <plugin>
         <groupId>net.oneandone.maven.plugins</groupId>
         <artifactId>dockerbuild</artifactId>
         <configuration>
-          <dockerbuild>tomcat-war</dockerbuild>
           <arguments>
+            <yourArgument>here</yourArgument>
           </arguments>
         </configuration>
       </plugin>
 
-to your Maven module. Adjust the `dockerbuild` to fit your application and add arguments as needed.
+to your pom. Adjust arguments as needed.
 
 
 ## Parameterization
 
-Dockerfiles can be parameterized using Dockers `ARG` instruction. You can set these arguments in the plugin configuration inside
+Dockerfiles can be parameterized using Docker's `ARG` instruction. You can set these arguments in the plugin configuration inside
 the `arguments` element; e.g.
 
     <configuration>
@@ -121,27 +121,27 @@ The main rationale behind dockerbuilds is to keep Dockerfiles separate from the 
 * Simplify maintenance: we just have to update a small number dockerbuilds instead of a possibly hug number of Dockerfile spread in Maven projects
 * Separation: Java developers can concentrate on their Java build - they don't have to care about the latest best practice to build an
   image for them; instead, they simply pick the latest dockerbuild that fits their framework/setup.
-* Avoid copy paste: nobody's forced to Google for suitable Dockerfiles - that could get copied to the Maven module - and easily become
+* Avoid copy/paste: nobody's forced to Google for suitable Dockerfiles - that could get copied to the project source - and easily become
   unmaintained.
-* Operations: is much easier to keep a small number of dockerbuild in good shape (in particular: )updated with security fixes).
+* Operations: is much easier to keep a small number of dockerbuild in good shape (in particular: updated with security fixes).
 
 The price you have to pay: you cannot quickly adjust a Dockerfile for your particular Maven project - you have to adjust a shared version
 in your Dockerfile library.
 
-Dockerbuilds are the reason I wrote this plugin; I didn't find a proper way to do this in other Maven Docker plugins. A common
+Dockerbuilds are the reason I wrote this plugin; I didn't find a proper way to do this with other Maven Docker plugins. A common
 approach to get close is to provide central base images and use a simple Dockerfile in every Maven project to glue things together.
 
 
 ## Implementation
 
-This plugin is pretty simple. The build plugin prints equivalent build commands to log what it does:
+This plugin is pretty simple. The build goal prints equivalent shell commands to log what it does:
 * resolve artifact containing the Dockerfile
 * unpack into `target/dockerbuild/context`
 * copy artifact arguments into this directory
-* use Dockers Java Client API to build the image;
+* use Docker's Java Client API to build the image;
 
-Note that the plugin does not actually use command-line call it prints to the console -- this is just to Document hat it does and to simplify
-manual testing, you can copy-and-paste the commands to retry your build.
+Note that the plugin does not actually use the shell command it prints to the console -- this is just to document what it does and to simplify
+manual testing - you can copy-and-paste the commands to retry your build.
 
 
 ## Links
