@@ -144,6 +144,7 @@ public class Push extends Base {
         auth = new AuthConfig();
         auth.withUsername(get(json, "Username"));
         auth.withPassword(get(json, "Secret"));
+        return auth;
     }
 
     /** docker-java loads this file, but it does not store credsStore */
