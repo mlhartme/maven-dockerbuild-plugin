@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.Base64;
 
 /**
  * Push Docker image.
@@ -83,13 +85,55 @@ public class Push extends Base {
     }
 
     private AuthConfig authConfig(String registry) throws MojoExecutionException, IOException {
+        JsonObject config;
+        String store;
+
+        config = configJson();
+        store = getOpt(config, "credsStore");
+        if (store != null) {
+            return storeAuthConfig(store, registry);
+        } else {
+            return inlineAuthConfig(config, registry);
+        }
+    }
+
+    private AuthConfig inlineAuthConfig(JsonObject config, String registry) throws MojoExecutionException {
+        JsonElement element;
+        String str;
+        int idx;
+        AuthConfig result;
+
+        element = config.get("auths");
+        if (element == null) {
+            throw new MojoExecutionException("missing auths");
+        }
+        element = element.getAsJsonObject().get(registry);
+        if (element == null) {
+            throw new MojoExecutionException("missing auth for registry " + registry);
+        }
+        try {
+            str = new String(Base64.getDecoder().decode(element.getAsString()), "utf8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
+        idx = str.indexOf(':');
+        if (idx == -1) {
+            throw new MojoExecutionException("invalid credentials");
+        }
+        result = new AuthConfig();
+        result.withUsername(str.substring(0, idx));
+        result.withPassword(str.substring(idx + 1));
+        return result;
+    }
+
+    private AuthConfig storeAuthConfig(String store, String registry) throws MojoExecutionException {
         Writer output = new StringWriter();
         Reader input = new StringReader(registry);
         JsonObject json;
         AuthConfig auth;
         String credentialsHelper;
 
-        credentialsHelper = "docker-credential-" + credsStore();
+        credentialsHelper = "docker-credential-" + store;
         getLog().debug("credentials-helper: " + credentialsHelper);
         try {
             world.getWorking().launcher(credentialsHelper, "get").exec(output, null, true, input, false);
@@ -100,17 +144,13 @@ public class Push extends Base {
         auth = new AuthConfig();
         auth.withUsername(get(json, "Username"));
         auth.withPassword(get(json, "Secret"));
-        return auth;
     }
 
     /** docker-java loads this file, but it does not store credsStore */
-    private String credsStore() throws IOException {
-        JsonObject json;
-
+    private JsonObject configJson() throws IOException {
         try (Reader src = world.file(configPath).join("config.json").newReader()) {
-            json = JsonParser.parseReader(src).getAsJsonObject();
+            return JsonParser.parseReader(src).getAsJsonObject();
         }
-        return get(json, "credsStore");
     }
 
     private static String get(JsonObject obj, String field) {
@@ -121,5 +161,12 @@ public class Push extends Base {
             throw new IllegalStateException("missing field: " + field);
         }
         return e.getAsString();
+    }
+
+    private static String getOpt(JsonObject obj, String field) {
+        JsonElement e;
+
+        e = obj.get(field);
+        return e == null ? null : e.getAsString();
     }
 }
