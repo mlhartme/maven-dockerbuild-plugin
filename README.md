@@ -1,24 +1,24 @@
 # Maven Dockerbuild Plugin
 
-This is a Maven plugin to build Docker images. It does not provide functionality to run images.
+This is a Maven plugin to build Docker images.
 
 Goals: https://mlhartme.github.io/maven-dockerbuild-plugin/plugin-info.html
 
+Note: It does not provide functionality to run images.
 
 ## Dockerbuilds
 
-A dockerbuild is a Maven artifact (a jar file) containing a Dockerfile, optionally with additional files used by the Dockerfile
-(for example configuration files you want to add to the image). Dockerbuilds are managed centrally in your favorite repository,
-the set of all dockerbuilds is called the dockerbuild library. The library provides builds for the different frameworks in use,
-like tomcat-war files or Spring boot.
-
-To build an image for a Maven project (or a module in a multi-module build), you choose the appropriate dockerbuild from the library.
-The plugin resolves it (i.e. downloads the jar to the local repository - if necessary), unpacks it into the build context directory,
-adds necessary artifacts, and runs the Docker daemon on it.
+A dockerbuild is a Maven artifact (more precisely: a jar artifact) containing a Dockerfile and optionally additional files used by the Dockerfile
+(for example configuration files you want to add to the image). Dockerbuilds are managed centrally in your favorite Maven repository. The idea is to
+have one dockerbuild for each setup or framework (e.g. tomcat-war or Spring boot) in your repository. To build an image for a Maven project
+(or a module in a multi-module build), you just select the appropriate dockerbuild from the repository. The plugin resolves it (i.e. downloads
+the jar to the local repository - if necessary), unpacks it into the build context directory, adds necessary artifacts, and runs the Docker
+daemon on it.
 
 ## Setup
 
-Prerequisite: Docker installed, accessible for the current user.
+Prerequisite: A Docker installed, accessible for the current user.
+That's the easiest way. Technically, it's enough to just have the Docker daemon running and accessible for the current user.
 
 You'll typically add a snippet like this
 
@@ -48,10 +48,11 @@ You'll typically add a snippet like this
       </plugin>
 
 to your parent pom. Adjust
-* `library` to point to get groupId of your dockerbuilds
+* `library` to specify the groupId of your dockerbuilds
+* `dockerbuild` to specify the artifactId of the default dockerbuild to use
 * `image` to start with your Docker registry and to match your naming conventions
 
-If you don't manage a separate parent pom, you can also add it directly to your project pom, but make sure to properly merge
+If you don't manage a separate parent pom, you can also add this to your project pom, but make sure to properly merge
 it with the usage configuration below.
 
 
