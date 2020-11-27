@@ -109,7 +109,11 @@ public class Push extends Base {
         }
         element = element.getAsJsonObject().get(registry);
         if (element == null) {
-            throw new MojoExecutionException("missing auth for registry " + registry);
+            throw new MojoExecutionException("missing registry " + registry);
+        }
+        element = element.getAsJsonObject().get("auth");
+        if (element == null) {
+            throw new MojoExecutionException("missing auth in registry " + registry);
         }
         try {
             str = new String(Base64.getDecoder().decode(element.getAsString()), "utf8");
