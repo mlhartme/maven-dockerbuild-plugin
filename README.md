@@ -8,16 +8,16 @@ Note: It does not provide functionality to run images.
 
 ## Dockerbuilds
 
-A dockerbuild is a Maven artifact (more precisely: a jar artifact) containing a Dockerfile and optionally additional files used by the Dockerfile
+A dockerbuild is a Maven artifact (more precisely: a jar artifact) containing a Dockerfile. In addition, you may add files used by the Dockerfile
 (for example configuration files you want to add to the image). Dockerbuilds are managed centrally in your favorite Maven repository. The idea is to
-have one dockerbuild for each setup or framework (e.g. tomcat-war or Spring boot) in your repository. To build an image for a Maven project
-(or a module in a multi-module build), you just select the appropriate dockerbuild from the repository. The plugin resolves it (i.e. downloads
-the jar to the local repository - if necessary), unpacks it into the build context directory, adds necessary artifacts, and runs the Docker
-daemon on it.
+have one dockerbuild for each setup or framework you use in your repository, e.g. a tomcat-war Dockerbuild and a Spring boot dockerbuild.
+To build an image for a Maven project (or a module in a multi-module build), you just select the appropriate dockerbuild from the repository.
+The plugin resolves it (i.e. downloads the jar to the local repository - if necessary), unpacks it into the build context directory, adds
+necessary artifacts, and runs the Docker daemon on it.
 
 ## Setup
 
-Prerequisite: A Docker installed, accessible for the current user.
+Prerequisite: Docker installed, accessible for the current user.
 That's the easiest way. Technically, it's enough to just have the Docker daemon running and accessible for the current user.
 
 You'll typically add a snippet like this
@@ -58,8 +58,8 @@ it with the usage configuration below.
 
 ## Usage
 
-Assuming your parent pom is set up as described above, you can start build images right away. If you want to specify arguements,
-or override parent condifuration, add something like
+Assuming your parent pom is set up as described above, you can start build images right away. If you want to specify arguments,
+or override parent configuration, add something like
 
       <plugin>
         <groupId>net.oneandone.maven.plugins</groupId>
