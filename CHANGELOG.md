@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 (pending)
+
+* you can now override artifact arguments with explicit arguments (thanks to Olaf)
+
+
 ## 1.0.0 (2020-11-30)
 
 Initial version. This is a roughtly a spin-off of the "stool build" command from 

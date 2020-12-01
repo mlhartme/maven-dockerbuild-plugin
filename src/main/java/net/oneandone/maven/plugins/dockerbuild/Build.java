@@ -143,10 +143,10 @@ public class Build extends Base {
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
         Arguments a = context.arguments(log);
+        a.addExplicit(arguments);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), project.getBuild().getFinalName());
         a.addBuild(comment);
         a.addPom(project);
-        a.addExplicit(arguments);
         actuals = a.result();
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()

@@ -43,14 +43,19 @@ public class Arguments {
     /** compute build argument values and add artifactArguments to context. */
     public void addArtifacts(Context context, FileNode directory, String artifactName) throws IOException {
         final String artifactPrefix = "artifact";
+        String value;
         FileNode src;
         FileNode dest;
         String extension;
 
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(artifactPrefix)) {
-                extension = arg.name.substring(artifactPrefix.length()).toLowerCase();
-                src = directory.join(artifactName + "." + extension);
+                if (result.containsKey(arg.name)) {
+                    src = directory.getWorld().file(result.get(arg.name));
+                } else {
+                    extension = arg.name.substring(artifactPrefix.length()).toLowerCase();
+                    src = directory.join(artifactName + "." + extension);
+                }
                 src.checkFile();
                 dest = context.getDirectory().join(src.getName());
                 src.copyFile(dest);
