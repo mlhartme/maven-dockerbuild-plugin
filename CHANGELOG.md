@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.1 (pending)
+## 1.0.1 (2020-12-02)
 
 Added artifactName parameter, which is used instead of finalName for implicit artifact arguments.
 This is partially a work-around for problems mit build-helper-plugin, it's parsed version properties
