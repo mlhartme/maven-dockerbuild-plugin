@@ -88,6 +88,10 @@ public class Build extends Base {
     @Parameter
     private Map<String, String> arguments;
 
+    /** Explicit argument values passed to the build. */
+    @Parameter(defaultValue = "${project.build.finalName}", required = true)
+    private String artifactName;
+
     /** Used internally */
     @Parameter(property = "project", required = true, readonly = true)
     private final MavenProject project;
@@ -143,7 +147,7 @@ public class Build extends Base {
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
         Arguments a = context.arguments(log);
-        a.addArtifacts(context, world.file(project.getBuild().getDirectory()), project.getBuild().getFinalName());
+        a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
         a.addBuild(comment);
         a.addPom(project);
         a.addExplicit(arguments);
