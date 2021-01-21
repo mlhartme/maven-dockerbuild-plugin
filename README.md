@@ -94,9 +94,16 @@ starting with `pom`.
 
 ### Pom arguments
 
-Use pom arguments to pass pom data into you Dockerfile.
+Use pom arguments to pass pom data into your Dockerfile.
 
 * `pomScm`  scm developerConnection or - if not set - connection
+
+
+### Property arguments
+
+Use property arguments to pass properties into your Dockerfile.
+
+Example: `propertyFooBar` passes the value of `fooBar` to the Dockerfile
 
 
 ### Build arguments

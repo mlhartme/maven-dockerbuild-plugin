@@ -150,6 +150,7 @@ public class Build extends Base {
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
         a.addBuild(comment);
         a.addPom(project);
+        a.addProperty(project);
         a.addExplicit(arguments);
         actuals = a.result();
         try (InputStream tarSrc = context.tar().newInputStream()) {

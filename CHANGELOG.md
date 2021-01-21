@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 (pending)
+
+* added property arguments.
+
+
 ## 1.0.1 (2020-12-02)
 
 Added artifactName parameter, which is used instead of finalName for implicit artifact arguments.
