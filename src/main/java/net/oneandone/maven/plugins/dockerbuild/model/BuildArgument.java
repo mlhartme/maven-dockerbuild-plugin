@@ -44,7 +44,7 @@ public class BuildArgument {
         int idx;
 
         line = line.trim();
-        if (line.length() < 4 || !line.substring(0, 3).trim().toUpperCase().equals("ARG")) {
+        if (line.length() < 4 || !line.substring(0, 3).trim().equalsIgnoreCase("ARG")) {
             return null;
         }
         line = line.substring(4).trim();

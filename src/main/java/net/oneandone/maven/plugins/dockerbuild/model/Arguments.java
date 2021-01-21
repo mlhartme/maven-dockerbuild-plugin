@@ -97,21 +97,21 @@ public class Arguments {
 
     public void addProperty(MavenProject project) throws MojoExecutionException {
         final String propertyPrefix = "property";
-        String name;
+        String key;
         String value;
 
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(propertyPrefix)) {
-                name = arg.name.substring(propertyPrefix.length());
-                if (name.isEmpty()) {
+                key = arg.name.substring(propertyPrefix.length());
+                if (key.isEmpty()) {
                     throw new MojoExecutionException("missing property name after suffix: " + arg.name);
                 }
-                name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-                value = project.getProperties().getProperty(name);
+                key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
+                value = project.getProperties().getProperty(key);
                 if (value == null) {
-                    throw new MojoExecutionException("property not found: " + name);
+                    throw new MojoExecutionException("property not found: " + key);
                 }
-                result.put(name, value);
+                result.put(arg.name, value);
             }
         }
     }
