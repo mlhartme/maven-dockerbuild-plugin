@@ -24,6 +24,7 @@ import org.apache.maven.project.MavenProject;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,6 +59,62 @@ public class Arguments {
                 log.info("cp " + src + " " + dest);
             }
         }
+    }
+
+    public void addFiles(FileNode src, FileNode dest) throws MojoExecutionException, IOException {
+        final String filePrefix = "file";
+        String key;
+        Map<String, FileNode> index;
+        FileNode file;
+
+        index = null;
+        for (BuildArgument arg : formals.values()) {
+            if (arg.name.startsWith(filePrefix)) {
+                key = arg.name.substring(filePrefix.length()).toLowerCase();
+                if (key.isEmpty()) {
+                    throw new MojoExecutionException("missing file name after prefix: " + arg.name);
+                }
+                if (index == null) {
+                    index = scan(src);
+                }
+                file = index.get(key);
+                if (file == null) {
+                    throw new MojoExecutionException(key + ": file not found in " + src);
+                }
+                result.put(arg.name, Base64.getEncoder().encodeToString(file.readBytes()));
+                file.copyFile(dest.join(file.getRelative(src)));
+            }
+        }
+    }
+
+    private static Map<String, FileNode> scan(FileNode root) throws IOException {
+        Map<String, FileNode> result;
+
+        result = new HashMap<>();
+        if (root.exists()) {
+            for (FileNode file : root.find("**/*")) {
+                if (file.isFile()) {
+                    result.put(normalize(file.getRelative(root)), file);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static String normalize(String path) {
+        StringBuilder result;
+        char c;
+
+        result = new StringBuilder();
+        for (int i = 0; i < path.length(); i++) {
+            c = path.charAt(i);
+            if (c == '.' || c == '/') {
+                continue;
+            }
+            c = Character.toLowerCase(c);
+            result.append(c);
+        }
+        return result.toString();
     }
 
     public void addPom(MavenProject project) throws MojoExecutionException {
@@ -104,7 +161,7 @@ public class Arguments {
             if (arg.name.startsWith(propertyPrefix)) {
                 key = arg.name.substring(propertyPrefix.length());
                 if (key.isEmpty()) {
-                    throw new MojoExecutionException("missing property name after suffix: " + arg.name);
+                    throw new MojoExecutionException("missing property name after prefix: " + arg.name);
                 }
                 key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
                 value = project.getProperties().getProperty(key);

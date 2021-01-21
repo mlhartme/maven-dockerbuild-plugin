@@ -46,7 +46,7 @@ public abstract class Base extends AbstractMojo {
         this.world = world;
     }
 
-    private FileNode buildDirectory() {
+    protected FileNode buildDirectory() {
         return world.file(buildDirectory);
     }
 
