@@ -156,6 +156,7 @@ public class Build extends Base {
         started = System.currentTimeMillis();
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
+        project.getProperties().put("dockerbuild.image", repositoryTag);
         Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
         a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory().join("files").mkdirOpt(), fileFilter, project, session);

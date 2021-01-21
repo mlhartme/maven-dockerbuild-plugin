@@ -4,6 +4,7 @@
 
 * added file arguments
 * added property arguments
+* `build` now defines a Maven property "dockerbuild.image" with the image actually built
 
 
 ## 1.0.1 (2020-12-02)
