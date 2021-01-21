@@ -2,7 +2,8 @@
 
 ## 1.1.0 (pending)
 
-* added property arguments.
+* added file arguments
+* added property arguments
 
 
 ## 1.0.1 (2020-12-02)

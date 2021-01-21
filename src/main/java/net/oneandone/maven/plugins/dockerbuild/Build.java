@@ -22,6 +22,7 @@ import net.oneandone.maven.plugins.dockerbuild.model.BuildListener;
 import net.oneandone.maven.plugins.dockerbuild.model.Context;
 import net.oneandone.maven.plugins.dockerbuild.model.Placeholders;
 import net.oneandone.sushi.fs.file.FileNode;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
@@ -99,6 +101,14 @@ public class Build extends Base {
     //--
 
     @Component
+    private MavenSession session;
+
+    @Component
+    private MavenFileFilter fileFilter;
+
+    //--
+
+    @Component
     private RepositorySystem repoSystem;
 
     /** Used internally */
@@ -148,7 +158,7 @@ public class Build extends Base {
         imageFile().writeString(repositoryTag);
         Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
-        a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory().join("files").mkdirOpt(), project);
+        a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory().join("files").mkdirOpt(), fileFilter, project, session);
         a.addBuild(comment);
         a.addPom(project);
         a.addProperty(project);

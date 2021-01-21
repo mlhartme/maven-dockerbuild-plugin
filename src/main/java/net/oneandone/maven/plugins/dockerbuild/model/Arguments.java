@@ -16,21 +16,22 @@
 package net.oneandone.maven.plugins.dockerbuild.model;
 
 import net.oneandone.sushi.fs.file.FileNode;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.InterpolationFilterReader;
+import org.apache.maven.shared.filtering.MavenFileFilter;
+import org.apache.maven.shared.filtering.MavenFilteringException;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 /** represents the actual arguments passed to the docker build */
 public class Arguments {
@@ -64,15 +65,12 @@ public class Arguments {
         }
     }
 
-    public void addFiles(FileNode srcdir, FileNode destdir, MavenProject project) throws MojoExecutionException, IOException {
+    public void addFiles(FileNode srcdir, FileNode destdir, MavenFileFilter filter, MavenProject project, MavenSession session) throws MojoExecutionException, IOException {
         final String filePrefix = "file";
         String key;
         Map<String, FileNode> index;
         FileNode srcfile;
         FileNode destfile;
-        int c;
-        StringBuilder builder;
-        String str;
 
         index = null;
         for (BuildArgument arg : formals.values()) {
@@ -89,35 +87,15 @@ public class Arguments {
                     throw new MojoExecutionException(key + ": file not found in " + srcdir);
                 }
                 destfile = destdir.join(srcfile.getRelative(srcdir));
-                try (InterpolationFilterReader src = new InterpolationFilterReader(srcfile.newReader(), prefix(project.getProperties(), "project."))) {
-                    builder = new StringBuilder();
-                    while (true) { // TODO
-                        c = src.read();
-                        if (c == -1) {
-                            break;
-                        }
-                        builder.append((char) c);
-                    }
-                    str = builder.toString();
-                    destfile.writeString(str);
+                try {
+                    filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
+                            new ArrayList<>(), false, "utf8", session);
+                } catch (MavenFilteringException e) {
+                    throw new MojoExecutionException(e.getMessage(), e);
                 }
-                result.put(arg.name, Base64.getEncoder().encodeToString(str.getBytes("utf8")));
+                result.put(arg.name, Base64.getEncoder().encodeToString(destfile.readBytes()));
             }
         }
-    }
-
-    private static Map<String, Object> prefix(Properties p, String prefix) {
-        Map<String, Object> result;
-        Enumeration names;
-        String name;
-
-        result = new HashMap<>(p.size());
-        names = p.propertyNames();
-        while (names.hasMoreElements()) {
-            name = (String) names.nextElement();
-            result.put(prefix + name, p.getProperty(name));
-        }
-        return result;
     }
 
     private static Map<String, FileNode> scan(FileNode root) throws IOException {
