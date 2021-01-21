@@ -20,14 +20,17 @@ import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.InterpolationFilterReader;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /** represents the actual arguments passed to the docker build */
 public class Arguments {
@@ -61,11 +64,15 @@ public class Arguments {
         }
     }
 
-    public void addFiles(FileNode src, FileNode dest) throws MojoExecutionException, IOException {
+    public void addFiles(FileNode srcdir, FileNode destdir, MavenProject project) throws MojoExecutionException, IOException {
         final String filePrefix = "file";
         String key;
         Map<String, FileNode> index;
-        FileNode file;
+        FileNode srcfile;
+        FileNode destfile;
+        int c;
+        StringBuilder builder;
+        String str;
 
         index = null;
         for (BuildArgument arg : formals.values()) {
@@ -75,16 +82,42 @@ public class Arguments {
                     throw new MojoExecutionException("missing file name after prefix: " + arg.name);
                 }
                 if (index == null) {
-                    index = scan(src);
+                    index = scan(srcdir);
                 }
-                file = index.get(key);
-                if (file == null) {
-                    throw new MojoExecutionException(key + ": file not found in " + src);
+                srcfile = index.get(key);
+                if (srcfile == null) {
+                    throw new MojoExecutionException(key + ": file not found in " + srcdir);
                 }
-                result.put(arg.name, Base64.getEncoder().encodeToString(file.readBytes()));
-                file.copyFile(dest.join(file.getRelative(src)));
+                destfile = destdir.join(srcfile.getRelative(srcdir));
+                try (InterpolationFilterReader src = new InterpolationFilterReader(srcfile.newReader(), prefix(project.getProperties(), "project."))) {
+                    builder = new StringBuilder();
+                    while (true) { // TODO
+                        c = src.read();
+                        if (c == -1) {
+                            break;
+                        }
+                        builder.append((char) c);
+                    }
+                    str = builder.toString();
+                    destfile.writeString(str);
+                }
+                result.put(arg.name, Base64.getEncoder().encodeToString(str.getBytes("utf8")));
             }
         }
+    }
+
+    private static Map<String, Object> prefix(Properties p, String prefix) {
+        Map<String, Object> result;
+        Enumeration names;
+        String name;
+
+        result = new HashMap<>(p.size());
+        names = p.propertyNames();
+        while (names.hasMoreElements()) {
+            name = (String) names.nextElement();
+            result.put(prefix + name, p.getProperty(name));
+        }
+        return result;
     }
 
     private static Map<String, FileNode> scan(FileNode root) throws IOException {

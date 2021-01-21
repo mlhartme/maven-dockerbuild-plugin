@@ -148,7 +148,7 @@ public class Build extends Base {
         imageFile().writeString(repositoryTag);
         Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
-        a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory().join("files").mkdirOpt());
+        a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory().join("files").mkdirOpt(), project);
         a.addBuild(comment);
         a.addPom(project);
         a.addProperty(project);
