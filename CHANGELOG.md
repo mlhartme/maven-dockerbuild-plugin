@@ -2,11 +2,11 @@
 
 ## 1.1.0 (pending)
 
+* dumped comment, you can use arbitrary system properties instead
 * added file arguments
 * added property arguments
 * `build` now defines Maven properties
   * dockerbuild.image
-  * dockerbuild.comment
   * dockerbuild.origin  
 * dumped `build` arguments, use `property` arguments with one of the properties above
 

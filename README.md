@@ -79,7 +79,6 @@ The build goal defines the following properties within Maven; use them for prope
 
 * dockerbuild.origin    current host and user
 * dockerbuild.image     image tag
-* dockerbuild.comment   comment as defined by plugin argument
 
 
 ## Parameterization

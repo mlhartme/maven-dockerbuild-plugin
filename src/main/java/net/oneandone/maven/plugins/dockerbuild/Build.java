@@ -84,10 +84,6 @@ public class Build extends Base {
     @Parameter(property = "dockerbuild.image", defaultValue = "%g/%a:%V")
     private final String image;
 
-    /** Comment passed to the buildComment argument. */
-    @Parameter(property = "dockerbuild.comment", defaultValue = "")
-    private final String comment;
-
     /** Explicit argument values passed to the build. */
     @Parameter
     private Map<String, String> arguments;
@@ -127,7 +123,6 @@ public class Build extends Base {
         this.version = null;
         this.noCache = false;
         this.image = "";
-        this.comment = "";
         this.arguments = new HashMap<>();
         this.project = null;
     }
@@ -159,7 +154,6 @@ public class Build extends Base {
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
         project.getProperties().put("dockerbuild.image", repositoryTag);
-        project.getProperties().put("dockerbuild.comment", comment);
         project.getProperties().put("dockerbuild.origin", origin());
         Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
