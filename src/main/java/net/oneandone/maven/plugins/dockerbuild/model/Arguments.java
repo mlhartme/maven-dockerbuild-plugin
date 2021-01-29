@@ -25,8 +25,6 @@ import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.apache.maven.shared.filtering.MavenFilteringException;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -144,25 +142,6 @@ public class Arguments {
         }
     }
 
-    public void addBuild(String comment) throws MojoExecutionException {
-        final String buildPrefix = "build";
-
-        for (BuildArgument arg : formals.values()) {
-            if (arg.name.startsWith(buildPrefix)) {
-                switch (arg.name) {
-                    case "buildOrigin":
-                        result.put(arg.name, origin());
-                        break;
-                    case "buildComment":
-                        result.put(arg.name, comment);
-                        break;
-                    default:
-                        throw new MojoExecutionException("unknown build argument: " + arg.name);
-                }
-            }
-        }
-    }
-
     public void addProperty(MavenProject project) throws MojoExecutionException {
         final String propertyPrefix = "property";
         String key;
@@ -211,14 +190,6 @@ public class Arguments {
     }
 
     //--
-
-    private static String origin() {
-        try {
-            return System.getProperty("user.name") + '@' + InetAddress.getLocalHost().getCanonicalHostName();
-        } catch (UnknownHostException e) {
-            return "unknown host: " + e.getMessage();
-        }
-    }
 
     private String getScm(MavenProject project) throws MojoExecutionException {
         Scm scm;

@@ -73,6 +73,14 @@ or override parent configuration, add something like
 
 to your pom. Adjust arguments as needed.
 
+## Properties
+
+The build goal defines the following properties within Maven; use them for property arguments of Maven file filtering
+
+* dockerbuild.origin    current host and user
+* dockerbuild.image     image tag
+* dockerbuild.comment   comment as defined by plugin argument
+
 
 ## Parameterization
 
@@ -113,14 +121,6 @@ your image) in labels.
 Example: `fileFooYaml` reads `src/dockerbuild/foo.yaml`, performs maven filtering on it (i.e. replaces properties like ${project.version}),
 base64-encodes the result and passes it to the `fileFooYaml` argument. The resulting file is also written (without base64 encoding)
 to `target/dockerbuild/foo.yaml`.
-
-
-### Build arguments
-
-Use build arguments to pass additional data into your Dockerfile.
-
-* `buildComment` as specified for the build
-* `buildOrigin` current user and the machine running this build
 
 
 ### Artifact arguments

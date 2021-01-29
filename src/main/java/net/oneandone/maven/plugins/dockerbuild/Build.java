@@ -34,6 +34,8 @@ import org.apache.maven.project.MavenProject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -157,10 +159,11 @@ public class Build extends Base {
         imageFile().getParent().mkdirsOpt();
         imageFile().writeString(repositoryTag);
         project.getProperties().put("dockerbuild.image", repositoryTag);
+        project.getProperties().put("dockerbuild.comment", comment);
+        project.getProperties().put("dockerbuild.origin", origin());
         Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
         a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory(), fileFilter, project, session);
-        a.addBuild(comment);
         a.addPom(project);
         a.addProperty(project);
         a.addExplicit(arguments);
@@ -186,6 +189,14 @@ public class Build extends Base {
         }
         log.info("Done: " + repositoryTag);
         log.debug("id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
+    }
+
+    private static String origin() {
+        try {
+            return System.getProperty("user.name") + '@' + InetAddress.getLocalHost().getCanonicalHostName();
+        } catch (UnknownHostException e) {
+            return "unknown host: " + e.getMessage();
+        }
     }
 
     /** command-line equivalent of the rest call we're using */
