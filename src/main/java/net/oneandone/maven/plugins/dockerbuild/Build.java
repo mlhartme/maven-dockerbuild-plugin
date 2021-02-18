@@ -141,7 +141,7 @@ public class Build extends Base {
         FileNode buildLog;
 
         log = getLog();
-        repositoryTag = new Placeholders(project).resolve(image);
+        repositoryTag = new Placeholders(world.file(project.getBasedir()), project).resolve(image);
         jar = resolveDockerbuild();
         contextDir = context();
         log.info("rm -rf " + contextDir + "; mkdir " + contextDir);

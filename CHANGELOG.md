@@ -2,6 +2,7 @@
 
 ## 1.1.0 (pending)
 
+* added %b placeholder to include git branch name to image
 * dumped comment, you can use arbitrary system properties instead
 * added file arguments
 * added property arguments

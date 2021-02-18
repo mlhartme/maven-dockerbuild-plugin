@@ -15,6 +15,8 @@
  */
 package net.oneandone.maven.plugins.dockerbuild.model;
 
+import net.oneandone.sushi.fs.file.FileNode;
+import net.oneandone.sushi.launcher.Failure;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 
@@ -23,9 +25,11 @@ import java.util.Date;
 
 /** Inspired by https://maven.fabric8.io/#image-name-placeholders */
 public class Placeholders {
+    private final FileNode working;
     private final MavenProject project;
 
-    public Placeholders(MavenProject project) {
+    public Placeholders(FileNode working, MavenProject project) {
+        this.working = working;
         this.project = project;
     }
 
@@ -45,6 +49,8 @@ public class Placeholders {
                     case 'a':
                         result.append(artifact());
                         break;
+                    case 'b':
+                        result.append(branch());
                     case 'g':
                         result.append(group());
                         break;
@@ -59,6 +65,14 @@ public class Placeholders {
             }
         }
         return result.toString();
+    }
+
+    private String branch() throws MojoExecutionException {
+        try {
+            return sanitize(working.exec("git", "symbolic-ref", "--short", "-q", "HEAD").trim());
+        } catch (Failure e) {
+            throw new MojoExecutionException("cannot determin current branch: " + e.getMessage(), e);
+        }
     }
 
     private String artifact() {
