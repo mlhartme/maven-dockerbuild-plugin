@@ -51,6 +51,7 @@ public class Placeholders {
                         break;
                     case 'b':
                         result.append(branch());
+                        break;
                     case 'g':
                         result.append(group());
                         break;
