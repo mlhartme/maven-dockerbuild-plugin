@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (pending)
+## 1.1.0 (2021-02-23)
 
 * added %b placeholder to include git branch name to image
 * dumped comment, you can use arbitrary system properties instead
