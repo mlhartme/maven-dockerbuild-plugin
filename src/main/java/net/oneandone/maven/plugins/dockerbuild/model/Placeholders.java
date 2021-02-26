@@ -72,7 +72,7 @@ public class Placeholders {
         try {
             return sanitize(working.exec("git", "symbolic-ref", "--short", "-q", "HEAD").trim());
         } catch (Failure e) {
-            throw new MojoExecutionException("cannot determin current branch: " + e.getMessage(), e);
+            throw new MojoExecutionException("cannot determine current branch: " + e.getMessage(), e);
         }
     }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 (pending)
+
+* file arguments now also remove '-' and  '_' before matching names
+
+
 ## 1.1.0 (2021-02-23)
 
 * added %b placeholder to include git branch name to image

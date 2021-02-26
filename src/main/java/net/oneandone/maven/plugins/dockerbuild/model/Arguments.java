@@ -117,7 +117,7 @@ public class Arguments {
         result = new StringBuilder();
         for (int i = 0; i < path.length(); i++) {
             c = path.charAt(i);
-            if (c == '.' || c == '/') {
+            if (c == '.' || c == '/' || c == '-' || c == '_') {
                 continue;
             }
             c = Character.toLowerCase(c);
