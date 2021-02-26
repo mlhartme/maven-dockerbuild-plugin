@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.1 (pending)
+## 1.1.1 (2021-02-26)
 
 * file arguments now also remove '-' and  '_' before matching names
 
