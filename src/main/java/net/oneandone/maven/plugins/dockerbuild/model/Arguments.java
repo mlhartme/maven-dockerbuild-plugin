@@ -146,6 +146,7 @@ public class Arguments {
         final String propertyPrefix = "property";
         String key;
         String value;
+        boolean opt;
 
         for (BuildArgument arg : formals.values()) {
             if (arg.name.startsWith(propertyPrefix)) {
@@ -154,11 +155,24 @@ public class Arguments {
                     throw new MojoExecutionException("missing property name after prefix: " + arg.name);
                 }
                 key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
+                if (key.startsWith("opt")) {
+                    opt = true;
+                    key = key.substring(3);
+                    if (key.isEmpty()) {
+                        throw new MojoExecutionException("missing property name after prefix: " + arg.name);
+                    }
+                    key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
+                } else {
+                    opt = false;
+                }
                 value = project.getProperties().getProperty(key);
                 if (value == null) {
-                    throw new MojoExecutionException("property not found: " + key);
+                    if (!opt) {
+                        throw new MojoExecutionException("property not found: " + key);
+                    }
+                } else {
+                    result.put(arg.name, value);
                 }
-                result.put(arg.name, value);
             }
         }
     }
