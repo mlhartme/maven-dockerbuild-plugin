@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /** represents the actual arguments passed to the docker build */
@@ -63,7 +64,7 @@ public class Arguments {
         }
     }
 
-    public void addFiles(FileNode srcdir, FileNode destdir, MavenFileFilter filter, MavenProject project, MavenSession session) throws MojoExecutionException, IOException {
+    public void addFiles(List<FileNode> srcdirs, FileNode destdir, MavenFileFilter filter, MavenProject project, MavenSession session) throws MojoExecutionException, IOException {
         final String filePrefix = "file";
         String key;
         Map<String, FileNode> index;
@@ -78,13 +79,13 @@ public class Arguments {
                     throw new MojoExecutionException("missing file name after prefix: " + arg.name);
                 }
                 if (index == null) {
-                    index = scan(srcdir);
+                    index = scan(srcdirs);
                 }
                 srcfile = index.get(key);
                 if (srcfile == null) {
-                    throw new MojoExecutionException(key + ": file not found in " + srcdir);
+                    throw new MojoExecutionException(key + ": file not found in " + srcdirs);
                 }
-                destfile = destdir.join(srcfile.getRelative(srcdir));
+                destfile = destdir.join(key);
                 try {
                     filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
                             new ArrayList<>(), false, "utf8", session);
@@ -96,14 +97,16 @@ public class Arguments {
         }
     }
 
-    private static Map<String, FileNode> scan(FileNode root) throws IOException {
+    private static Map<String, FileNode> scan(List<FileNode> roots) throws IOException {
         Map<String, FileNode> result;
 
         result = new HashMap<>();
-        if (root.exists()) {
-            for (FileNode file : root.find("**/*")) {
-                if (file.isFile()) {
-                    result.put(normalize(file.getRelative(root)), file);
+        for (FileNode root : roots) {
+            if (root.exists()) {
+                for (FileNode file : root.find("**/*")) {
+                    if (file.isFile()) {
+                        result.put(normalize(file.getRelative(root)), file);
+                    }
                 }
             }
         }

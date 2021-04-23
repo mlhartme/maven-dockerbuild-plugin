@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -161,7 +162,7 @@ public class Build extends Base {
         project.getProperties().put("dockerbuild.origin", origin());
         Arguments a = context.arguments(log);
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
-        a.addFiles(world.file(project.getBasedir()).join("src/dockerbuild"), buildDirectory(), fileFilter, project, session);
+        a.addFiles(srcdirs(), buildDirectory(), fileFilter, project, session);
         a.addPom(project);
         a.addProperty(project);
         a.addExplicit(arguments);
@@ -187,6 +188,16 @@ public class Build extends Base {
         }
         log.info("Done: " + repositoryTag);
         log.debug("id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
+    }
+
+    private List<FileNode> srcdirs() {
+        List<FileNode> result;
+
+        // CAUTION: ordering is imported, later items precedence
+        result = new ArrayList<>();
+        result.add(buildDirectory().join("dockerbuildfiles"));
+        result.add(world.file(project.getBasedir()).join("src/dockerbuild"));
+        return result;
     }
 
     private static String origin() {

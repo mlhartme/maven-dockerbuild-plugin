@@ -110,12 +110,13 @@ Use pom arguments to pass pom data into your Dockerfile.
 
 Use property arguments to pass properties into your Dockerfile.
 
-Example: `propertyFooBar` passes the value of `fooBar` to the Dockerfile
+Example: `propertyFooBar` passes the value of `fooBar` to the Dockerfile; aborts with an error if the property is not defined
+Example: `propertyOptJava` passes the value of `java` to the Dockerfile if the property is defined; otherwise, the argument is not passed to Docker
 
 ### File arguments
 
 Use file argument to pass filtered file contents as base64 encoded strings. This is useful to store whole files (e.g. with metadata about
-your image) in labels.
+your image) in labels. Files are picked from src/dockerbuild and target/dockerbuildfiles, where your files have precedence
 
 Example: `fileFooYaml` reads `src/dockerbuild/foo.yaml`, performs maven filtering on it (i.e. replaces properties like ${project.version}),
 base64-encodes the result and passes it to the `fileFooYaml` argument. The resulting file is also written (without base64 encoding)

@@ -2,7 +2,8 @@
 
 ## 1.1.2 (pending)
 
-* added propertyOpt argument 
+* added propertyOpt argument
+* file arguments now also search in target/dockerbuildfiles for source files  
 * skippable builds
   * build goal:
     added special dockerbuild "skip" that simply disables the plugin; this way you can configure the plugin with a simple property 
