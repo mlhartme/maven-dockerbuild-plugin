@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.2 (pending)
+
+* build goal:
+  added special dockerbuild "skip" that simply disables the plugin; this way you can configure the plugin with a simple property 
+  instead of a profile (with also simplifies testing, because everybody can invoke the plugin directly with -Ddockerbuild=foo)
+* push goal:
+  if target/image file does not exists (e.g. because build was skipped): issue a note and do nothing
+  
+
 ## 1.1.1 (2021-02-26)
 
 * file arguments now also remove '-' and  '_' before matching names

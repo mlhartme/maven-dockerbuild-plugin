@@ -22,6 +22,7 @@ import com.github.dockerjava.core.command.PushImageResultCallback;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.oneandone.sushi.fs.file.FileNode;
 import net.oneandone.sushi.launcher.Failure;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -52,6 +53,7 @@ public class Push extends Base {
 
     @Override
     public void doExecute(DockerClient docker) throws IOException, MojoExecutionException {
+        FileNode imageFile;
         String image;
         String name;
         String tag;
@@ -59,7 +61,12 @@ public class Push extends Base {
         String registry;
         PushImageCmd pushCmd;
 
-        image = imageFile().readString().trim();
+        imageFile = imageFile();
+        if (!imageFile.exists()) {
+            getLog().info(imageFile + " not found, push skipped");
+            return;
+        }
+        image = imageFile.readString().trim();
         getLog().info("docker push " + image);
         idx = image.indexOf('/');
         if (idx == -1) {
