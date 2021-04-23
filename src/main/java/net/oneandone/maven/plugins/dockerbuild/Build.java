@@ -195,7 +195,7 @@ public class Build extends Base {
 
         // CAUTION: ordering is imported, later items precedence
         result = new ArrayList<>();
-        result.add(buildDirectory().join("dockerbuildfiles"));
+        result.add(buildDirectory().getParent().join("dockerbuildfiles"));
         result.add(world.file(project.getBasedir()).join("src/dockerbuild"));
         return result;
     }
