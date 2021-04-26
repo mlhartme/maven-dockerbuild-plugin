@@ -104,8 +104,6 @@ public class Build extends Base {
     @Component
     private MavenFileFilter fileFilter;
 
-    //--
-
     @Component
     private RepositorySystem repoSystem;
 
@@ -159,8 +157,7 @@ public class Build extends Base {
         imageFile().writeString(repositoryTag);
         project.getProperties().put("dockerbuild.image", repositoryTag);
         project.getProperties().put("dockerbuild.origin", origin());
-        actuals = new Arguments(log, context.formals(), context,
-                world.file(project.getBuild().getDirectory()), artifactName, fileFilter, project, session).run(arguments);
+        actuals = new Arguments(log, context, artifactName, fileFilter, project, session).eval(arguments);
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)

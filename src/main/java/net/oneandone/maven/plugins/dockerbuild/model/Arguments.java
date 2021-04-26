@@ -44,20 +44,20 @@ public class Arguments {
     private final MavenProject project;
     private final MavenSession session;
 
-    public Arguments(Log log, Map<String, BuildArgument> formals, Context context, FileNode target, String artifactName,
-                     MavenFileFilter filter, MavenProject project, MavenSession session) {
+    public Arguments(Log log, Context context, String artifactName, MavenFileFilter filter, MavenProject project, MavenSession session)
+            throws IOException {
         this.log = log;
-        this.world = target.getWorld();
-        this.formals = formals;
+        this.world = context.getDirectory().getWorld();
+        this.formals = context.formals();
         this.context = context;
-        this.target = target;
+        this.target = world.file(project.getBuild().getDirectory());
         this.artifactName = artifactName;
         this.filter = filter;
         this.project = project;
         this.session = session;
     }
 
-    public Map<String, String> run(Map<String, String> actuals) throws MojoExecutionException, IOException {
+    public Map<String, String> eval(Map<String, String> actuals) throws MojoExecutionException, IOException {
         Map<String, String> result;
         String name;
 
