@@ -82,35 +82,39 @@ public class Arguments {
             throws MojoExecutionException, IOException {
         int idx;
         String name;
+
+        if (!value.startsWith("%")) {
+            return value;
+        }
+        idx = value.indexOf(':');
+        if (idx == -1) {
+            throw new MojoExecutionException("invalid value: " + value);
+        }
+        name = value.substring(1, idx);
+        value = eval(value.substring(idx + 1), world, filter, project, session);
+        switch (name) {
+            case "base64":
+                return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+            case "file":
+                return file(value, world, filter, project, session);
+            default:
+                throw new MojoExecutionException("unknown directive: " + name);
+        }
+    }
+
+    private String file(String value, World world, MavenFileFilter filter, MavenProject project, MavenSession session) throws IOException, MojoExecutionException {
         FileNode srcfile;
         FileNode destfile;
-        if (value.startsWith("%")) {
-            idx = value.indexOf(':');
-            if (idx == -1) {
-                throw new MojoExecutionException("invalid value: " + value);
-            }
-            name = value.substring(1, idx);
-            value = eval(value.substring(idx + 1), world, filter, project, session);
-            switch (name) {
-                case "base64":
-                    return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
-                case "file":
-                    srcfile = world.file(value);
-                    destfile = world.getTemp().createTempFile();
-                    try {
-                        filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
-                                new ArrayList<>(), false, "utf8", session);
-                        return destfile.readString();
-                    } catch (MavenFilteringException e) {
-                        throw new MojoExecutionException(e.getMessage(), e);
-                    } finally {
-                        destfile.deleteFile();
-                    }
-                default:
-                    throw new MojoExecutionException("unknown directive: " + name);
-            }
-        } else {
-            return value;
+        srcfile = world.file(value);
+        destfile = world.getTemp().createTempFile();
+        try {
+            filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
+                    new ArrayList<>(), false, "utf8", session);
+            return destfile.readString();
+        } catch (MavenFilteringException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
+        } finally {
+            destfile.deleteFile();
         }
     }
 
