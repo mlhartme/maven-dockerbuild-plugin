@@ -81,7 +81,9 @@ public class Arguments {
             case "file":
                 return file(value, directory.getWorld(), filter, project, session);
             case "artifact":
-                return artifact(value, context, directory, artifactName);
+                return artifact(value, directory, artifactName);
+            case "copy":
+                return copy(value, context, directory);
             default:
                 throw new MojoExecutionException("unknown directive: " + name);
         }
@@ -104,11 +106,19 @@ public class Arguments {
         }
     }
 
-    private String artifact(String extension, Context context, FileNode directory, String artifactName) throws IOException {
+    private String artifact(String extension, FileNode directory, String artifactName) throws IOException {
+        FileNode src;
+
+        src = directory.join(artifactName + "." + extension);
+        src.checkFile();
+        return src.getAbsolute();
+    }
+
+    private String copy(String path, Context context, FileNode directory) throws IOException {
         FileNode src;
         FileNode dest;
 
-        src = directory.join(artifactName + "." + extension);
+        src = directory.getWorld().file(path);
         src.checkFile();
         dest = context.getDirectory().join(src.getName());
         src.copyFile(dest);
