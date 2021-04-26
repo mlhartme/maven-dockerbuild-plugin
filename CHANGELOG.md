@@ -2,7 +2,6 @@
 
 ## 1.2.0 (pending)
 
-* renamed `master` branch to `main`
 * stop pulling arguments, that's like using global variables - at first, it's handy, but as things grow, it becomes scary magic
   * added %base64 directive to base64-encode a string
   * added %file directive to read file into an argument  
@@ -16,6 +15,7 @@
     but readily configure the executions. And derived poms simply overwrite it with the dockerbuild they need.
   * push goal:
     if target/image file does not exists (e.g. because build was skipped): issue a note and do nothing
+* renamed branch `master` to `main`
   
 
 ## 1.1.1 (2021-02-26)

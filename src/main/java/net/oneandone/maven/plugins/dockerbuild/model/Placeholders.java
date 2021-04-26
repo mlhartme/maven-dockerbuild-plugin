@@ -23,7 +23,7 @@ import org.apache.maven.project.MavenProject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-/** Inspired by https://maven.fabric8.io/#image-name-placeholders */
+/** Version placeholders. Inspired by https://maven.fabric8.io/#image-name-placeholders */
 public class Placeholders {
     private final FileNode working;
     private final MavenProject project;
