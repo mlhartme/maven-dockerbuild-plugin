@@ -18,7 +18,6 @@ package net.oneandone.maven.plugins.dockerbuild.model;
 import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.execution.MavenSession;
-import org.apache.maven.model.Scm;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
@@ -30,34 +29,41 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** represents the actual arguments passed to the docker build */
 public class Arguments {
     private final Log log;
     private final Map<String, BuildArgument> formals;
-    private final Map<String, String> result;
 
     public Arguments(Log log, Map<String, BuildArgument> formals) {
         this.log = log;
         this.formals = formals;
-        this.result = new HashMap<>();
     }
 
-    public Map<String, String> run(Map<String, String> arguments, Context context, FileNode directory, String artifactName,
+    public Map<String, String> run(Map<String, String> actuals, Context context, FileNode directory, String artifactName,
                     MavenFileFilter filter, MavenProject project, MavenSession session)
             throws MojoExecutionException, IOException {
+        Map<String, String> result;
         String name;
 
-        for (Map.Entry<String, String> entry : arguments.entrySet()) {
+        result = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : actuals.entrySet()) {
             name = entry.getKey();
             if (!formals.containsKey(name)) {
                 throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
             }
             result.put(name, eval(entry.getValue(), context, directory, artifactName, filter, project, session));
         }
-        return result();
+        for (BuildArgument arg : formals.values()) {
+            if (!result.containsKey(arg.name)) {
+                if (arg.dflt == null) {
+                    throw new MojoExecutionException("mandatory argument is missing: " + arg.name);
+                }
+            }
+        }
+        return result;
     }
 
     private String eval(String value, Context context, FileNode directory, String artifactName,
@@ -124,39 +130,6 @@ public class Arguments {
         src.copyFile(dest);
         log.info("cp " + src + " " + dest);
         return src.getName();
-    }
-
-
-    public Map<String, String> result() throws MojoExecutionException {
-        for (BuildArgument arg : formals.values()) {
-            if (!result.containsKey(arg.name)) {
-                result.put(arg.name, arg.dflt);
-            }
-        }
-        for (Map.Entry<String, String> entry : result.entrySet()) {
-            if (entry.getValue() == null) {
-                throw new MojoExecutionException("mandatory argument is missing: " + entry.getKey());
-            }
-        }
-        return result;
-    }
-
-    //--
-
-    private String getScm(MavenProject project) throws MojoExecutionException {
-        Scm scm;
-        String str;
-
-        scm = project.getScm();
-        str = scm.getDeveloperConnection();
-        if (str != null) {
-            return str;
-        }
-        str = scm.getConnection();
-        if (str != null) {
-            return str;
-        }
-        throw new MojoExecutionException("pomScm argument: scm is not defined in this project");
     }
 
     private static String available(Collection<BuildArgument> args) {
