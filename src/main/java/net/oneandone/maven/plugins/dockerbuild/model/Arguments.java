@@ -21,10 +21,12 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.apache.maven.shared.filtering.MavenFilteringException;
+import org.apache.maven.shared.filtering.MavenReaderFilter;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -39,11 +41,11 @@ public class Arguments {
     private final Map<String, BuildArgument> formals;
     private final Context context;
     private final FileNode target;
-    private final MavenFileFilter filter;
+    private final MavenReaderFilter filter;
     private final MavenProject project;
     private final MavenSession session;
 
-    public Arguments(Log log, Context context, MavenFileFilter filter, MavenProject project, MavenSession session) throws IOException {
+    public Arguments(Log log, Context context, MavenReaderFilter filter, MavenProject project, MavenSession session) throws IOException {
         this.log = log;
         this.world = context.getDirectory().getWorld();
         this.formals = context.formals();
@@ -114,23 +116,25 @@ public class Arguments {
     }
 
     private String filter(String value) throws IOException, MojoExecutionException {
-        FileNode src;
-        FileNode dest;
+        StringReader src;
+        StringBuilder dest;
+        Reader s;
+        int c;
 
-        src = world.getTemp().createTempFile();
-        src.writeString(value + "\n");
-        log.info("src: " + value);
-        dest = world.getTemp().createTempFile();
+        src = new StringReader(value);
+        dest = new StringBuilder();
         try {
-            filter.copyFile(src.toPath().toFile(), dest.toPath().toFile(), true, project,
-                    new ArrayList<>(), false, "utf8", session);
-            log.info("dest: " + value);
-            return dest.readString();
+            s = filter.filter(src, true, project, new ArrayList<>(), false, session);
+            while (true) {
+                c = s.read();
+                if (c < 0) {
+                    break;
+                }
+                dest.append((char) c);
+            }
+            return dest.toString();
         } catch (MavenFilteringException e) {
             throw new MojoExecutionException(e.getMessage(), e);
-        } finally {
-            src.deleteFile();
-            dest.deleteFile();
         }
     }
 

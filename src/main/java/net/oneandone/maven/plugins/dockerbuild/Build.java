@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.maven.plugins.annotations.Component;
-import org.apache.maven.shared.filtering.MavenFileFilter;
+import org.apache.maven.shared.filtering.MavenReaderFilter;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
@@ -98,7 +98,7 @@ public class Build extends Base {
     private MavenSession session;
 
     @Component
-    private MavenFileFilter fileFilter;
+    private MavenReaderFilter readerFilter;
 
     @Component
     private RepositorySystem repoSystem;
@@ -153,7 +153,7 @@ public class Build extends Base {
         imageFile().writeString(repositoryTag);
         project.getProperties().put("dockerbuild.image", repositoryTag);
         project.getProperties().put("dockerbuild.origin", origin());
-        actuals = new Arguments(log, context, fileFilter, project, session).eval(arguments);
+        actuals = new Arguments(log, context, readerFilter, project, session).eval(arguments);
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
