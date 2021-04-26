@@ -12,8 +12,8 @@
   * dumped `artifact` arguments - use `artifact` directive instead
 * skippable builds
   * build goal:
-    added special dockerbuild "skip" that simply disables the plugin; this way you can configure the plugin with a simple property 
-    instead of a profile (with also simplifies testing, because everybody can invoke the plugin directly with -Ddockerbuild=foo)
+    added special dockerbuild "skip" that simply disables the build goal; this way you can configure the plugin in your parent pom with "skip"
+    but readily configure the executions. And derived poms simply overwrite it with the dockerbuild they need.
   * push goal:
     if target/image file does not exists (e.g. because build was skipped): issue a note and do nothing
   
