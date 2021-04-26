@@ -16,9 +16,13 @@
 package net.oneandone.maven.plugins.dockerbuild.model;
 
 import net.oneandone.sushi.fs.Node;
+import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.kamranzafar.jtar.TarEntry;
 import org.kamranzafar.jtar.TarHeader;
 import org.kamranzafar.jtar.TarOutputStream;
@@ -28,6 +32,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class Context {
     public static Context create(FileNode srcJar, String dockerbuild, FileNode dest) throws IOException, MojoExecutionException {
@@ -102,8 +107,13 @@ public class Context {
         return result;
     }
 
-    public Arguments arguments(Log log) throws IOException {
-        return new Arguments(log, BuildArgument.scan(directory.join("Dockerfile")));
+    public Map<String, String> arguments(Log log, Map<String, String> arguments, Context context, FileNode artifctDirectory, String artifactName,
+                                         World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+            throws IOException, MojoExecutionException {
+        Arguments a;
+
+        a = new Arguments(log, BuildArgument.scan(directory.join("Dockerfile")));
+        return a.run(arguments, context, artifctDirectory, artifactName, world, filter, project, session);
     }
 
     public String toString() {

@@ -45,8 +45,8 @@ public class Arguments {
         this.result = new HashMap<>();
     }
 
-    public void addExplicit(Map<String, String> arguments, Context context, FileNode directory, String artifactName,
-                            World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+    public Map<String, String> run(Map<String, String> arguments, Context context, FileNode directory, String artifactName,
+                    World world, MavenFileFilter filter, MavenProject project, MavenSession session)
             throws MojoExecutionException, IOException {
         String name;
 
@@ -57,6 +57,7 @@ public class Arguments {
             }
             result.put(name, eval(entry.getValue(), context, directory, artifactName, world, filter, project, session));
         }
+        return result();
     }
 
     private String eval(String value, Context context, FileNode directory, String artifactName,
