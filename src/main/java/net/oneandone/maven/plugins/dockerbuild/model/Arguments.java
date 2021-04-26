@@ -35,15 +35,29 @@ import java.util.Map;
 /** represents the actual arguments passed to the docker build */
 public class Arguments {
     private final Log log;
+    private final World world;
     private final Map<String, BuildArgument> formals;
+    private final Context context;
+    private final FileNode target;
+    private final String artifactName;
+    private final MavenFileFilter filter;
+    private final MavenProject project;
+    private final MavenSession session;
 
-    public Arguments(Log log, Map<String, BuildArgument> formals) {
+    public Arguments(Log log, Map<String, BuildArgument> formals, Context context, FileNode target, String artifactName,
+                     MavenFileFilter filter, MavenProject project, MavenSession session) {
         this.log = log;
+        this.world = target.getWorld();
         this.formals = formals;
+        this.context = context;
+        this.target = target;
+        this.artifactName = artifactName;
+        this.filter = filter;
+        this.project = project;
+        this.session = session;
     }
 
-    public Map<String, String> run(Map<String, String> actuals, Context context, FileNode directory, String artifactName,
-                    MavenFileFilter filter, MavenProject project, MavenSession session)
+    public Map<String, String> run(Map<String, String> actuals)
             throws MojoExecutionException, IOException {
         Map<String, String> result;
         String name;
@@ -54,7 +68,7 @@ public class Arguments {
             if (!formals.containsKey(name)) {
                 throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
             }
-            result.put(name, eval(entry.getValue(), context, directory, artifactName, filter, project, session));
+            result.put(name, eval(entry.getValue()));
         }
         for (BuildArgument arg : formals.values()) {
             if (!result.containsKey(arg.name)) {
@@ -66,9 +80,7 @@ public class Arguments {
         return result;
     }
 
-    private String eval(String value, Context context, FileNode directory, String artifactName,
-                        MavenFileFilter filter, MavenProject project, MavenSession session)
-            throws MojoExecutionException, IOException {
+    private String eval(String value) throws MojoExecutionException, IOException {
         int idx;
         String name;
 
@@ -80,22 +92,22 @@ public class Arguments {
             throw new MojoExecutionException("invalid value: " + value);
         }
         name = value.substring(1, idx);
-        value = eval(value.substring(idx + 1), context, directory, artifactName, filter, project, session);
+        value = eval(value.substring(idx + 1));
         switch (name) {
             case "base64":
                 return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
             case "file":
-                return file(value, directory.getWorld(), filter, project, session);
+                return file(value);
             case "artifact":
-                return artifact(value, directory, artifactName);
+                return artifact(value);
             case "copy":
-                return copy(value, context, directory);
+                return copy(value);
             default:
                 throw new MojoExecutionException("unknown directive: " + name);
         }
     }
 
-    private String file(String value, World world, MavenFileFilter filter, MavenProject project, MavenSession session) throws IOException, MojoExecutionException {
+    private String file(String value) throws IOException, MojoExecutionException {
         FileNode src;
         FileNode dest;
 
@@ -112,19 +124,19 @@ public class Arguments {
         }
     }
 
-    private String artifact(String extension, FileNode directory, String artifactName) throws IOException {
+    private String artifact(String extension) throws IOException {
         FileNode src;
 
-        src = directory.join(artifactName + "." + extension);
+        src = target.join(artifactName + "." + extension);
         src.checkFile();
         return src.getAbsolute();
     }
 
-    private String copy(String path, Context context, FileNode directory) throws IOException {
+    private String copy(String path) throws IOException {
         FileNode src;
         FileNode dest;
 
-        src = directory.getWorld().file(path);
+        src = world.file(path);
         src.checkFile();
         dest = context.getDirectory().join(src.getName());
         src.copyFile(dest);
