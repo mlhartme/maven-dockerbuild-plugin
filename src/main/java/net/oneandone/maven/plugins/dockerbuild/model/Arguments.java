@@ -46,7 +46,7 @@ public class Arguments {
     }
 
     public Map<String, String> run(Map<String, String> arguments, Context context, FileNode directory, String artifactName,
-                    World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+                    MavenFileFilter filter, MavenProject project, MavenSession session)
             throws MojoExecutionException, IOException {
         String name;
 
@@ -55,13 +55,13 @@ public class Arguments {
             if (!formals.containsKey(name)) {
                 throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
             }
-            result.put(name, eval(entry.getValue(), context, directory, artifactName, world, filter, project, session));
+            result.put(name, eval(entry.getValue(), context, directory, artifactName, filter, project, session));
         }
         return result();
     }
 
     private String eval(String value, Context context, FileNode directory, String artifactName,
-                        World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+                        MavenFileFilter filter, MavenProject project, MavenSession session)
             throws MojoExecutionException, IOException {
         int idx;
         String name;
@@ -74,12 +74,12 @@ public class Arguments {
             throw new MojoExecutionException("invalid value: " + value);
         }
         name = value.substring(1, idx);
-        value = eval(value.substring(idx + 1), context, directory, artifactName, world, filter, project, session);
+        value = eval(value.substring(idx + 1), context, directory, artifactName, filter, project, session);
         switch (name) {
             case "base64":
                 return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
             case "file":
-                return file(value, world, filter, project, session);
+                return file(value, directory.getWorld(), filter, project, session);
             case "artifact":
                 return artifact(value, context, directory, artifactName);
             default:

@@ -16,7 +16,6 @@
 package net.oneandone.maven.plugins.dockerbuild.model;
 
 import net.oneandone.sushi.fs.Node;
-import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -108,12 +107,12 @@ public class Context {
     }
 
     public Map<String, String> arguments(Log log, Map<String, String> arguments, Context context, FileNode artifctDirectory, String artifactName,
-                                         World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+                                         MavenFileFilter filter, MavenProject project, MavenSession session)
             throws IOException, MojoExecutionException {
         Arguments a;
 
         a = new Arguments(log, BuildArgument.scan(directory.join("Dockerfile")));
-        return a.run(arguments, context, artifctDirectory, artifactName, world, filter, project, session);
+        return a.run(arguments, context, artifctDirectory, artifactName, filter, project, session);
     }
 
     public String toString() {
