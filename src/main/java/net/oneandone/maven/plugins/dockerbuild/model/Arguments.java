@@ -147,7 +147,8 @@ public class Arguments {
         }
     }
 
-    public void addExplicit(Map<String, String> arguments) throws MojoExecutionException, IOException {
+    public void addExplicit(Map<String, String> arguments, World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+            throws MojoExecutionException, IOException {
         String name;
 
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
@@ -155,30 +156,23 @@ public class Arguments {
             if (!formals.containsKey(name)) {
                 throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
             }
-            result.put(name, eval(entry.getValue()));
+            result.put(name, eval(entry.getValue(), world, filter, project, session));
         }
     }
 
-    private String eval(String value) throws MojoExecutionException, IOException {
+    private String eval(String value, World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+            throws MojoExecutionException, IOException {
         int idx;
         String name;
-
-        World world;
         FileNode srcfile;
         FileNode destfile;
-
-        world = null; // TODO
-        MavenFileFilter filter = null;
-        MavenProject project = null;
-        MavenSession session = null;
-
         if (value.startsWith("%")) {
             idx = value.indexOf(':');
             if (idx == -1) {
                 throw new MojoExecutionException("invalid value: " + value);
             }
             name = value.substring(1, idx);
-            value = eval(value.substring(idx + 1));
+            value = eval(value.substring(idx + 1), world, filter, project, session);
             switch (name) {
                 case "base64":
                     return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));

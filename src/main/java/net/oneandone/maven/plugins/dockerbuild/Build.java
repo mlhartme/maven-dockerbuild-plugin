@@ -164,7 +164,7 @@ public class Build extends Base {
         a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
         a.addFiles(srcdirs(), buildDirectory(), fileFilter, project, session);
         a.addPom(project);
-        a.addExplicit(arguments);
+        a.addExplicit(arguments, world, fileFilter, project, session);
         actuals = a.result();
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
