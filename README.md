@@ -74,10 +74,10 @@ passes 2048 to the `memory` Dockerfile argument.
 
 You can use various directives in argument values:
 
-* %artifact:<extension> evaluates to the path of this artifact
-* %copy:<path> copies the path into the context and evalues to the path within the context
-* %base64:<string> evalues to the base64 encoded string
-* %file:<pathToFile> evalues to the file contents
+* `%artifact:`*extension* or `%artifact:`*classifier*`:`*extension* evaluates to the path of this artifact
+* `%copy:`*path* copies the path into the context and evaluates to the path within the context
+* `%base64:`*string* evaluates to the base64 encoded string
+* `%file:`*pathToFile* evaluates to the filtered file contents
 
 ## Properties
 

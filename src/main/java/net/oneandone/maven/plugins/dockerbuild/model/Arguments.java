@@ -120,10 +120,18 @@ public class Arguments {
         }
     }
 
-    private String artifact(String extension) throws IOException {
+    private String artifact(String str) throws IOException {
+        int idx;
+        String suffix;
         FileNode src;
 
-        src = target.join(project.getBuild().getFinalName() + "." + extension);
+        idx = str.indexOf(':');
+        if (idx < 0) {
+            suffix = "." + str;
+        } else {
+            suffix = "-" + str.substring(0, idx) + "." + str.substring(idx + 1);
+        }
+        src = target.join(project.getBuild().getFinalName() + suffix);
         src.checkFile();
         return src.getAbsolute();
     }
