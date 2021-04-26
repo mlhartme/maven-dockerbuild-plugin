@@ -160,8 +160,7 @@ public class Build extends Base {
         project.getProperties().put("dockerbuild.image", repositoryTag);
         project.getProperties().put("dockerbuild.origin", origin());
         Arguments a = context.arguments(log);
-        a.addArtifacts(context, world.file(project.getBuild().getDirectory()), artifactName);
-        a.addExplicit(arguments, world, fileFilter, project, session);
+        a.addExplicit(arguments, context, world.file(project.getBuild().getDirectory()), artifactName, world, fileFilter, project, session);
         actuals = a.result();
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()

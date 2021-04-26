@@ -45,27 +45,8 @@ public class Arguments {
         this.result = new HashMap<>();
     }
 
-    /** compute build argument values and add artifactArguments to context. */
-    public void addArtifacts(Context context, FileNode directory, String artifactName) throws IOException {
-        final String artifactPrefix = "artifact";
-        FileNode src;
-        FileNode dest;
-        String extension;
-
-        for (BuildArgument arg : formals.values()) {
-            if (arg.name.startsWith(artifactPrefix)) {
-                extension = arg.name.substring(artifactPrefix.length()).toLowerCase();
-                src = directory.join(artifactName + "." + extension);
-                src.checkFile();
-                dest = context.getDirectory().join(src.getName());
-                src.copyFile(dest);
-                result.put(arg.name, dest.getName());
-                log.info("cp " + src + " " + dest);
-            }
-        }
-    }
-
-    public void addExplicit(Map<String, String> arguments, World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+    public void addExplicit(Map<String, String> arguments, Context context, FileNode directory, String artifactName,
+                            World world, MavenFileFilter filter, MavenProject project, MavenSession session)
             throws MojoExecutionException, IOException {
         String name;
 
@@ -74,11 +55,12 @@ public class Arguments {
             if (!formals.containsKey(name)) {
                 throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
             }
-            result.put(name, eval(entry.getValue(), world, filter, project, session));
+            result.put(name, eval(entry.getValue(), context, directory, artifactName, world, filter, project, session));
         }
     }
 
-    private String eval(String value, World world, MavenFileFilter filter, MavenProject project, MavenSession session)
+    private String eval(String value, Context context, FileNode directory, String artifactName,
+                        World world, MavenFileFilter filter, MavenProject project, MavenSession session)
             throws MojoExecutionException, IOException {
         int idx;
         String name;
@@ -91,32 +73,48 @@ public class Arguments {
             throw new MojoExecutionException("invalid value: " + value);
         }
         name = value.substring(1, idx);
-        value = eval(value.substring(idx + 1), world, filter, project, session);
+        value = eval(value.substring(idx + 1), context, directory, artifactName, world, filter, project, session);
         switch (name) {
             case "base64":
                 return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
             case "file":
                 return file(value, world, filter, project, session);
+            case "artifact":
+                return artifact(value, context, directory, artifactName);
             default:
                 throw new MojoExecutionException("unknown directive: " + name);
         }
     }
 
     private String file(String value, World world, MavenFileFilter filter, MavenProject project, MavenSession session) throws IOException, MojoExecutionException {
-        FileNode srcfile;
-        FileNode destfile;
-        srcfile = world.file(value);
-        destfile = world.getTemp().createTempFile();
+        FileNode src;
+        FileNode dest;
+
+        src = world.file(value);
+        dest = world.getTemp().createTempFile();
         try {
-            filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
+            filter.copyFile(src.toPath().toFile(), dest.toPath().toFile(), true, project,
                     new ArrayList<>(), false, "utf8", session);
-            return destfile.readString();
+            return dest.readString();
         } catch (MavenFilteringException e) {
             throw new MojoExecutionException(e.getMessage(), e);
         } finally {
-            destfile.deleteFile();
+            dest.deleteFile();
         }
     }
+
+    private String artifact(String extension, Context context, FileNode directory, String artifactName) throws IOException {
+        FileNode src;
+        FileNode dest;
+
+        src = directory.join(artifactName + "." + extension);
+        src.checkFile();
+        dest = context.getDirectory().join(src.getName());
+        src.copyFile(dest);
+        log.info("cp " + src + " " + dest);
+        return src.getName();
+    }
+
 
     public Map<String, String> result() throws MojoExecutionException {
         for (BuildArgument arg : formals.values()) {

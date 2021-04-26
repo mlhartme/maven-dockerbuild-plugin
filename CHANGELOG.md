@@ -6,8 +6,10 @@
 * stop pulling arguments, that's like using global variables - at first, it's handy, but as things grow, it becomes scary magic
   * added %base64 directive to base64-encode a string
   * added %file directive to read file into an argument  
+  * added %artifact directory to reference artifacts and also copy them to the context  
   * dumped `property` and `pom` arguments - use explicit argument that reference the property instead
   * dumped `file` arguments - use `base64` and `file` directives instead
+  * dumped `artifact` arguments - use `artifact` directive instead
 * skippable builds
   * build goal:
     added special dockerbuild "skip" that simply disables the plugin; this way you can configure the plugin with a simple property 
