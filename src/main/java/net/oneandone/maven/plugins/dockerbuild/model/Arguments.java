@@ -25,6 +25,7 @@ import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.apache.maven.shared.filtering.MavenFilteringException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -153,7 +154,29 @@ public class Arguments {
             if (!formals.containsKey(name)) {
                 throw new MojoExecutionException("unknown argument: " + name + "\n" + available(formals.values()));
             }
-            result.put(name, entry.getValue());
+            result.put(name, eval(entry.getValue()));
+        }
+    }
+
+    private String eval(String value) throws MojoExecutionException {
+        int idx;
+        String name;
+
+        if (value.startsWith("%")) {
+            idx = value.indexOf(':');
+            if (idx == -1) {
+                throw new MojoExecutionException("invalid value: " + value);
+            }
+            name = value.substring(1, idx);
+            value = value.substring(idx + 1);
+            switch (name) {
+                case "base64":
+                    return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+                default:
+                    throw new MojoExecutionException("unknown directive: " + name);
+            }
+        } else {
+            return value;
         }
     }
 
