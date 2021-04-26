@@ -90,32 +90,46 @@ public class Arguments {
         name = value.substring(1, idx);
         value = eval(value.substring(idx + 1));
         switch (name) {
-            case "base64":
-                return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
-            case "file":
-                return file(value);
             case "artifact":
                 return artifact(value);
+            case "base64":
+                return base64(value);
             case "copy":
                 return copy(value);
+            case "file":
+                return file(value);
+            case "filter":
+                return filter(value);
             default:
                 throw new MojoExecutionException("unknown directive: " + name);
         }
     }
 
-    private String file(String value) throws IOException, MojoExecutionException {
+    private String base64(String value) {
+        return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String file(String value) throws IOException {
+        return world.file(value).readString();
+    }
+
+    private String filter(String value) throws IOException, MojoExecutionException {
         FileNode src;
         FileNode dest;
 
-        src = world.file(value);
+        src = world.getTemp().createTempFile();
+        src.writeString(value + "\n");
+        log.info("src: " + value);
         dest = world.getTemp().createTempFile();
         try {
             filter.copyFile(src.toPath().toFile(), dest.toPath().toFile(), true, project,
                     new ArrayList<>(), false, "utf8", session);
+            log.info("dest: " + value);
             return dest.readString();
         } catch (MavenFilteringException e) {
             throw new MojoExecutionException(e.getMessage(), e);
         } finally {
+            src.deleteFile();
             dest.deleteFile();
         }
     }

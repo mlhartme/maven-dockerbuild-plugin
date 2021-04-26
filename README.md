@@ -75,9 +75,10 @@ passes 2048 to the `memory` Dockerfile argument.
 You can use various directives in argument values:
 
 * `%artifact:`*extension* or `%artifact:`*classifier*`:`*extension* evaluates to the path of this artifact
-* `%copy:`*path* copies the path into the context and evaluates to the path within the context
 * `%base64:`*string* evaluates to the base64 encoded string
-* `%file:`*pathToFile* evaluates to the filtered file contents
+* `%copy:`*path* copies the path into the context and evaluates to the path within the context
+* `%file:`*pathToFile* evaluates to the file contents
+* `%filter:`*string* evaluates to string with all Maven variables substituted
 
 ## Properties
 
