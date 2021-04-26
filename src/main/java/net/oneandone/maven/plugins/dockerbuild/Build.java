@@ -88,10 +88,6 @@ public class Build extends Base {
     @Parameter
     private Map<String, String> arguments;
 
-    /** Explicit argument values passed to the build. */
-    @Parameter(defaultValue = "${project.build.finalName}", required = true)
-    private String artifactName;
-
     /** Used internally */
     @Parameter(property = "project", required = true, readonly = true)
     private final MavenProject project;
@@ -157,7 +153,7 @@ public class Build extends Base {
         imageFile().writeString(repositoryTag);
         project.getProperties().put("dockerbuild.image", repositoryTag);
         project.getProperties().put("dockerbuild.origin", origin());
-        actuals = new Arguments(log, context, artifactName, fileFilter, project, session).eval(arguments);
+        actuals = new Arguments(log, context, fileFilter, project, session).eval(arguments);
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)

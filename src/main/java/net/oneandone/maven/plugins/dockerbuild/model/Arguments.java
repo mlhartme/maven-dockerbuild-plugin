@@ -39,19 +39,16 @@ public class Arguments {
     private final Map<String, BuildArgument> formals;
     private final Context context;
     private final FileNode target;
-    private final String artifactName;
     private final MavenFileFilter filter;
     private final MavenProject project;
     private final MavenSession session;
 
-    public Arguments(Log log, Context context, String artifactName, MavenFileFilter filter, MavenProject project, MavenSession session)
-            throws IOException {
+    public Arguments(Log log, Context context, MavenFileFilter filter, MavenProject project, MavenSession session) throws IOException {
         this.log = log;
         this.world = context.getDirectory().getWorld();
         this.formals = context.formals();
         this.context = context;
         this.target = world.file(project.getBuild().getDirectory());
-        this.artifactName = artifactName;
         this.filter = filter;
         this.project = project;
         this.session = session;
@@ -126,7 +123,7 @@ public class Arguments {
     private String artifact(String extension) throws IOException {
         FileNode src;
 
-        src = target.join(artifactName + "." + extension);
+        src = target.join(project.getBuild().getFinalName() + "." + extension);
         src.checkFile();
         return src.getAbsolute();
     }
