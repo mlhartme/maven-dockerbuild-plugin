@@ -145,41 +145,6 @@ public class Arguments {
         }
     }
 
-    public void addProperty(MavenProject project) throws MojoExecutionException {
-        final String propertyPrefix = "property";
-        String key;
-        String value;
-        boolean opt;
-
-        for (BuildArgument arg : formals.values()) {
-            if (arg.name.startsWith(propertyPrefix)) {
-                key = arg.name.substring(propertyPrefix.length());
-                if (key.isEmpty()) {
-                    throw new MojoExecutionException("missing property name after prefix: " + arg.name);
-                }
-                key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
-                if (key.startsWith("opt")) {
-                    opt = true;
-                    key = key.substring(3);
-                    if (key.isEmpty()) {
-                        throw new MojoExecutionException("missing property name after prefix: " + arg.name);
-                    }
-                    key = Character.toLowerCase(key.charAt(0)) + key.substring(1);
-                } else {
-                    opt = false;
-                }
-                value = project.getProperties().getProperty(key);
-                if (value == null) {
-                    if (!opt) {
-                        throw new MojoExecutionException("property not found: " + key);
-                    }
-                } else {
-                    result.put(arg.name, value);
-                }
-            }
-        }
-    }
-
     public void addExplicit(Map<String, String> arguments) throws MojoExecutionException {
         String name;
 

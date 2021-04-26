@@ -3,7 +3,7 @@
 ## 1.2.0 (pending)
 
 * renamed `master` branch to `main`
-* added propertyOpt argument
+* dumped `property` arguments - use explicit argument that reference the property instead
 * file arguments now also search in target/dockerbuildfiles for source files  
 * skippable builds
   * build goal:
