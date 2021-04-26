@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.1.2 (pending)
+## 1.2.0 (pending)
 
+* renamed `master` branch to `main`
 * added propertyOpt argument
 * file arguments now also search in target/dockerbuildfiles for source files  
 * skippable builds
