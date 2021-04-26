@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /** represents the actual arguments passed to the docker build */
@@ -62,87 +61,6 @@ public class Arguments {
                 src.copyFile(dest);
                 result.put(arg.name, dest.getName());
                 log.info("cp " + src + " " + dest);
-            }
-        }
-    }
-
-    public void addFiles(List<FileNode> srcdirs, FileNode destdir, MavenFileFilter filter, MavenProject project, MavenSession session) throws MojoExecutionException, IOException {
-        final String filePrefix = "file";
-        String key;
-        Map<String, FileNode> index;
-        FileNode srcfile;
-        FileNode destfile;
-
-        index = null;
-        for (BuildArgument arg : formals.values()) {
-            if (arg.name.startsWith(filePrefix)) {
-                key = arg.name.substring(filePrefix.length()).toLowerCase();
-                if (key.isEmpty()) {
-                    throw new MojoExecutionException("missing file name after prefix: " + arg.name);
-                }
-                if (index == null) {
-                    index = scan(srcdirs);
-                }
-                srcfile = index.get(key);
-                if (srcfile == null) {
-                    throw new MojoExecutionException(key + ": file not found in " + srcdirs);
-                }
-                destfile = destdir.join(key);
-                try {
-                    filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
-                            new ArrayList<>(), false, "utf8", session);
-                } catch (MavenFilteringException e) {
-                    throw new MojoExecutionException(e.getMessage(), e);
-                }
-                result.put(arg.name, Base64.getEncoder().encodeToString(destfile.readBytes()));
-            }
-        }
-    }
-
-    private static Map<String, FileNode> scan(List<FileNode> roots) throws IOException {
-        Map<String, FileNode> result;
-
-        result = new HashMap<>();
-        for (FileNode root : roots) {
-            if (root.exists()) {
-                for (FileNode file : root.find("**/*")) {
-                    if (file.isFile()) {
-                        result.put(normalize(file.getRelative(root)), file);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    private static String normalize(String path) {
-        StringBuilder result;
-        char c;
-
-        result = new StringBuilder();
-        for (int i = 0; i < path.length(); i++) {
-            c = path.charAt(i);
-            if (c == '.' || c == '/' || c == '-' || c == '_') {
-                continue;
-            }
-            c = Character.toLowerCase(c);
-            result.append(c);
-        }
-        return result.toString();
-    }
-
-    public void addPom(MavenProject project) throws MojoExecutionException {
-        final String pomPrefix = "pom";
-
-        for (BuildArgument arg : formals.values()) {
-            if (arg.name.startsWith(pomPrefix)) {
-                switch (arg.name) {
-                    case "pomScm":
-                        result.put(arg.name, getScm(project));
-                        break;
-                    default:
-                        throw new MojoExecutionException("unknown pom argument: " + arg.name);
-                }
             }
         }
     }

@@ -99,13 +99,6 @@ passes 2048 to the `memory` Dockerfile argument.
 In addition, the plugin automatically assigns various types of arguments, depending on their name prefix. E.g. pom arguments are arguments
 starting with `pom`.
 
-### Pom arguments
-
-Use pom arguments to pass pom data into your Dockerfile.
-
-* `pomScm`  scm developerConnection or - if not set - connection
-
-
 ### Artifact arguments
 
 Use artifact arguments to add Maven artifacts to the Docker build context. Artifact arguments behave a bit different compared to the other
