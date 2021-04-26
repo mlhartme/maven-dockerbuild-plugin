@@ -17,11 +17,7 @@ package net.oneandone.maven.plugins.dockerbuild.model;
 
 import net.oneandone.sushi.fs.Node;
 import net.oneandone.sushi.fs.file.FileNode;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.kamranzafar.jtar.TarEntry;
 import org.kamranzafar.jtar.TarHeader;
 import org.kamranzafar.jtar.TarOutputStream;
@@ -33,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/** Manage Docker build context directory */
 public class Context {
     public static Context create(FileNode srcJar, String dockerbuild, FileNode dest) throws IOException, MojoExecutionException {
         Node<?> src;
@@ -106,11 +103,8 @@ public class Context {
         return result;
     }
 
-    public Map<String, String> arguments(Log log, Map<String, String> actuals, Context context, FileNode target, String artifactName,
-                                         MavenFileFilter filter, MavenProject project, MavenSession session)
-            throws IOException, MojoExecutionException {
-        return new Arguments(log, BuildArgument.scan(directory.join("Dockerfile")), context, target, artifactName, filter, project, session)
-                .run(actuals);
+    public Map<String, BuildArgument> formals() throws IOException {
+        return BuildArgument.scan(directory.join("Dockerfile"));
     }
 
     public String toString() {

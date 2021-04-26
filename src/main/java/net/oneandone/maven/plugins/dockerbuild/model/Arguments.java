@@ -57,8 +57,7 @@ public class Arguments {
         this.session = session;
     }
 
-    public Map<String, String> run(Map<String, String> actuals)
-            throws MojoExecutionException, IOException {
+    public Map<String, String> run(Map<String, String> actuals) throws MojoExecutionException, IOException {
         Map<String, String> result;
         String name;
 

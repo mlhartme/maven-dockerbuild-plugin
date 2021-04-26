@@ -17,6 +17,7 @@ package net.oneandone.maven.plugins.dockerbuild;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
+import net.oneandone.maven.plugins.dockerbuild.model.Arguments;
 import net.oneandone.maven.plugins.dockerbuild.model.BuildListener;
 import net.oneandone.maven.plugins.dockerbuild.model.Context;
 import net.oneandone.maven.plugins.dockerbuild.model.Placeholders;
@@ -158,7 +159,8 @@ public class Build extends Base {
         imageFile().writeString(repositoryTag);
         project.getProperties().put("dockerbuild.image", repositoryTag);
         project.getProperties().put("dockerbuild.origin", origin());
-        actuals = context.arguments(log, arguments, context, world.file(project.getBuild().getDirectory()), artifactName, fileFilter, project, session);
+        actuals = new Arguments(log, context.formals(), context,
+                world.file(project.getBuild().getDirectory()), artifactName, fileFilter, project, session).run(arguments);
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
