@@ -15,6 +15,7 @@
  */
 package net.oneandone.maven.plugins.dockerbuild.model;
 
+import net.oneandone.sushi.fs.World;
 import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Scm;
@@ -146,7 +147,7 @@ public class Arguments {
         }
     }
 
-    public void addExplicit(Map<String, String> arguments) throws MojoExecutionException {
+    public void addExplicit(Map<String, String> arguments) throws MojoExecutionException, IOException {
         String name;
 
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
@@ -158,9 +159,18 @@ public class Arguments {
         }
     }
 
-    private String eval(String value) throws MojoExecutionException {
+    private String eval(String value) throws MojoExecutionException, IOException {
         int idx;
         String name;
+
+        World world;
+        FileNode srcfile;
+        FileNode destfile;
+
+        world = null; // TODO
+        MavenFileFilter filter = null;
+        MavenProject project = null;
+        MavenSession session = null;
 
         if (value.startsWith("%")) {
             idx = value.indexOf(':');
@@ -168,10 +178,22 @@ public class Arguments {
                 throw new MojoExecutionException("invalid value: " + value);
             }
             name = value.substring(1, idx);
-            value = value.substring(idx + 1);
+            value = eval(value.substring(idx + 1));
             switch (name) {
                 case "base64":
                     return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+                case "file":
+                    srcfile = world.file(value);
+                    destfile = world.getTemp().createTempFile();
+                    try {
+                        filter.copyFile(srcfile.toPath().toFile(), destfile.toPath().toFile(), true, project,
+                                new ArrayList<>(), false, "utf8", session);
+                        return destfile.readString();
+                    } catch (MavenFilteringException e) {
+                        throw new MojoExecutionException(e.getMessage(), e);
+                    } finally {
+                        destfile.deleteFile();
+                    }
                 default:
                     throw new MojoExecutionException("unknown directive: " + name);
             }
