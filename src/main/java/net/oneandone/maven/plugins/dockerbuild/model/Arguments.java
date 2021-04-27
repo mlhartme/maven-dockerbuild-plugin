@@ -112,7 +112,7 @@ public class Arguments {
     }
 
     private String file(String value) throws IOException {
-        return world.file(value).readString();
+        return world.file(world.file(project.getBasedir()), value).readString();
     }
 
     private String filter(String value) throws IOException, MojoExecutionException {
