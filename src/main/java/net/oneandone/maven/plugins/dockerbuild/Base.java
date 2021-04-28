@@ -38,6 +38,12 @@ public abstract class Base extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}/dockerbuild")
     private String buildDirectory;
 
+    /**
+     * true to skip goal.
+     */
+    @Parameter(defaultValue = "false", property = "dockerbuild.skip")
+    protected boolean skip;
+
     public Base() throws IOException {
         this(World.create());
     }

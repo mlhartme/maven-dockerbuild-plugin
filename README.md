@@ -22,12 +22,12 @@ Prerequisite:
 * Docker installed, accessible for the current user.
   That's the easiest way. Technically, it's enough to just have the Docker daemon running and accessible for the current user.
 
-You'll typically add a snippet like this
+Add this snippet to the **pluginsManagement** section of you pom (or, if you have one: to your parent pom)
 
       <plugin>
         <groupId>net.oneandone.maven.plugins</groupId>
         <artifactId>dockerbuild</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.2.0</version>
         <executions>
           <execution>
             <id>dockerbuild-package</id>
@@ -42,17 +42,23 @@ You'll typically add a snippet like this
             </goals>
           </execution>
         </executions>
+      </plugin>
+
+Next, add a snippet like this to the **plugins** section of your pom
+
+      <plugin>
+        <groupId>net.oneandone.maven.plugins</groupId>
+        <artifactId>dockerbuild</artifactId>
         <configuration>
           <library>com.ionos.maven.plugins.dockerbuild.library</library>
-          <dockerbuild>tomcat-war</dockerbuild>
+          <dockerbuild>your-docker-build</dockerbuild>
           <image>contargo.server.lan/cisoops-public/%a:%V</image>
           <arguments>
             <war>%copy:%artifact:war</war>
           </arguments>
         </configuration>
-      </plugin>
 
-to your pom. Adjust
+Adjust
 * `library` to specify the groupId of your dockerbuilds
 * `dockerbuild` to specify the artifactId of the dockerbuild to use
 * `image` to start with your Docker registry and to match your naming conventions

@@ -64,7 +64,7 @@ public class Build extends Base {
     @Parameter(property = "dockerbuild.library", defaultValue = "com.dockerbuild.library")
     private final String library;
 
-    /** Name of the dockerbuild to use. Specify "skip" to skip the dockerbuild */
+    /** Name of the dockerbuild to use. */
     @Parameter(required = true, property = "dockerbuild")
     private final String dockerbuild;
 
@@ -135,11 +135,11 @@ public class Build extends Base {
         FileNode buildLog;
 
         log = getLog();
-        jar = resolveDockerbuildOpt();
-        if (jar == null) {
-            log.info("dockerbuild skipped");
+        if (skip) {
+            log.info("build skipped");
             return;
         }
+        jar = resolveDockerbuild();
         repositoryTag = new Placeholders(world.file(project.getBasedir()), project).resolve(image);
         contextDir = context();
         log.info("rm -rf " + contextDir + "; mkdir " + contextDir);
@@ -207,16 +207,13 @@ public class Build extends Base {
 
     //-- artifact resolution, see https://maven.apache.org/resolver/maven-resolver-demos/maven-resolver-demo-maven-plugin/xref/index.html
 
-    private FileNode resolveDockerbuildOpt() throws MojoExecutionException {
+    private FileNode resolveDockerbuild() throws MojoExecutionException {
         String gav;
         Artifact artifact;
         ArtifactRequest request;
         ArtifactResult result;
         FileNode file;
 
-        if ("skip".equals(dockerbuild)) {
-            return null;
-        }
         gav = library + ":" + dockerbuild + ":" + checkedVersion();
         getLog().info("resolve " + gav);
         try {

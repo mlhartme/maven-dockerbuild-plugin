@@ -9,12 +9,8 @@
   * dumped `property` and `pom` arguments - use explicit argument that reference the property instead
   * dumped `file` arguments - use `base64` and `file` directives instead
   * dumped `artifact` arguments - use `artifact` directive instead
-* skippable builds
-  * build goal:
-    added special dockerbuild "skip" that simply disables the build goal; this way you can configure the plugin in your parent pom with "skip"
-    but readily configure the executions. And derived poms simply overwrite it with the dockerbuild they need.
-  * push goal:
-    if target/image file does not exists (e.g. because build was skipped): issue a note and do nothing
+* added skip argument to all goals; this is useful - e.g. - to readily configure your dockerbuild but skip it by default, 
+  and only enable when needed with `-Ddockerbuild.skip=false`
 * renamed branch `master` to `main`
   
 

@@ -61,11 +61,11 @@ public class Push extends Base {
         String registry;
         PushImageCmd pushCmd;
 
-        imageFile = imageFile();
-        if (!imageFile.exists()) {
-            getLog().info(imageFile + " not found, push skipped");
+        if (skip) {
+            getLog().info("push skipped");
             return;
         }
+        imageFile = imageFile();
         image = imageFile.readString().trim();
         getLog().info("docker push " + image);
         idx = image.indexOf('/');
