@@ -18,14 +18,14 @@
 
   <groupId>net.oneandone.maven.plugins</groupId>
   <artifactId>dockerbuild</artifactId>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.2.0</version>
   <packaging>maven-plugin</packaging>
 
   <scm>
     <connection>scm:git:ssh://git@github.com/mlhartme/maven-dockerbuild-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/mlhartme/maven-dockerbuild-plugin.git</developerConnection>
     <url>scm:git:ssh://git@github.com/mlhartme/maven-dockerbuild-plugin</url>
-    <tag>HEAD</tag>
+    <tag>dockerbuild-1.2.0</tag>
   </scm>
 
   <properties>
