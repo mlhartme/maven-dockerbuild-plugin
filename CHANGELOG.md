@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 (pending)
+## 1.2.0 (2021-04-28)
 
 * stop pulling arguments, that's like using global variables - at first, it's handy, but as things grow, it becomes scary magic
   * added %base64 directive to base64-encode a string
