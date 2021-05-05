@@ -130,6 +130,14 @@ This plugin is pretty simple. The `build` goal prints equivalent shell commands 
 Note that the plugin does not actually use the shell command it prints to the console -- this is just to document what it does and to simplify
 manual testing - you can copy-and-paste the commands to retry your build.
 
+Build notes:
+
+* Update plugin documentation:
+
+      mvn clean verify site site:stage scm-publish:publish-scm -Dscmpublish.content=target/staging/dockerbuild
+
+  It takes a few minutes for gh pages to sync.
+
 
 ## Links
 
