@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"net.oneandone.maven.plugins.dockerbuild"},{"l":"net.oneandone.maven.plugins.dockerbuild.model"}]
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"net.oneandone.maven.plugins.dockerbuild"},{"l":"net.oneandone.maven.plugins.dockerbuild.model"}];updateSearchResults();
