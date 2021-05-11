@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 (2021-05-11)
+
+* automatically skip dockerbuild goals if packaging is not war. This is useful to attached the dockerbuild in aggregating poms.
+
+
 ## 1.2.0 (2021-04-28)
 
 * stop pulling arguments, that's like using global variables - at first, it's handy, but as things grow, it becomes scary magic

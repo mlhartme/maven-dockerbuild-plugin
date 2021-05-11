@@ -25,6 +25,7 @@ import net.oneandone.sushi.fs.file.FileNode;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 
 import java.io.IOException;
 
@@ -44,12 +45,17 @@ public abstract class Base extends AbstractMojo {
     @Parameter(defaultValue = "false", property = "dockerbuild.skip")
     protected boolean skip;
 
+    /** Used internally */
+    @Parameter(property = "project", required = true, readonly = true)
+    protected final MavenProject project;
+
     public Base() throws IOException {
         this(World.create());
     }
 
     public Base(World world) {
         this.world = world;
+        this.project = null;
     }
 
     protected FileNode buildDirectory() {
@@ -70,10 +76,14 @@ public abstract class Base extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        try {
-            doExecute();
-        } catch (IOException e) {
-            throw new MojoExecutionException("io error: " + e.getMessage(), e);
+        if (!"war".equals(project.getPackaging())) {
+            getLog().info("skipping dockerbuild for packaging " + project.getPackaging());
+        } else {
+            try {
+                doExecute();
+            } catch (IOException e) {
+                throw new MojoExecutionException("io error: " + e.getMessage(), e);
+            }
         }
     }
 
