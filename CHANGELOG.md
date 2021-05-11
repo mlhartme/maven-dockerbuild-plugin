@@ -2,6 +2,8 @@
 
 ## 1.2.1 (2021-05-11)
 
+* added `latest` parameter to automatically create a local latest tag; not that this tag will never be deployed by the plugin,
+  and that the `image` file still holds the specified normal image tag. Default value is true.
 * automatically skip dockerbuild goals if packaging is not war. This is useful to attached the dockerbuild in aggregating poms.
 
 

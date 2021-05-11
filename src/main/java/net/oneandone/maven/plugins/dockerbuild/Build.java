@@ -35,10 +35,11 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.shared.filtering.MavenReaderFilter;
@@ -83,6 +84,10 @@ public class Build extends Base {
     @Parameter(property = "dockerbuild.image", defaultValue = "%g/%a:%V")
     private final String image;
 
+    /** True to automatically create a image tag with :latest */
+    @Parameter(property = "dockerbuild.latest", defaultValue = "true")
+    private final boolean latest;
+
     /** Explicit argument values passed to the build. */
     @Parameter
     private Map<String, String> arguments;
@@ -112,6 +117,7 @@ public class Build extends Base {
         this.version = null;
         this.noCache = false;
         this.image = "";
+        this.latest = true;
         this.arguments = new HashMap<>();
     }
 
@@ -127,6 +133,7 @@ public class Build extends Base {
         String id;
         BuildImageCmd build;
         FileNode buildLog;
+        Set<String> tags;
 
         log = getLog();
         if (skip) {
@@ -148,11 +155,16 @@ public class Build extends Base {
         project.getProperties().put("dockerbuild.image", repositoryTag);
         project.getProperties().put("dockerbuild.origin", origin());
         actuals = new Arguments(log, context, readerFilter, project, session).eval(arguments);
+        tags = new LinkedHashSet<>();
+        tags.add(repositoryTag);
+        if (latest) {
+            tags.add(toLatest(repositoryTag));
+        }
         try (InputStream tarSrc = context.tar().newInputStream()) {
             build = docker.buildImageCmd()
                     .withTarInputStream(tarSrc)
                     .withNoCache(noCache)
-                    .withTags(Collections.singleton(repositoryTag));
+                    .withTags(tags);
             for (Map.Entry<String, String> entry : actuals.entrySet()) {
                 build.withBuildArg(entry.getKey(), entry.getValue());
             }
@@ -169,6 +181,15 @@ public class Build extends Base {
         }
         log.info("Done: " + repositoryTag);
         log.debug("id=" + id + " seconds=" + (System.currentTimeMillis() - started) / 1000);
+    }
+
+    private static String toLatest(String tag) {
+        int idx;
+        String result;
+
+        idx = tag.lastIndexOf(':');
+        result = idx == -1 ? tag : tag.substring(0, idx);
+        return result + ":latest";
     }
 
     private static String origin() {
