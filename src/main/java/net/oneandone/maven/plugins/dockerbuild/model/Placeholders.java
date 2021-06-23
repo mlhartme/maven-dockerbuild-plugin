@@ -86,13 +86,6 @@ public class Placeholders {
         dest.append(expanded);
     }
 
-    private String dashBranch() throws MojoExecutionException {
-        String branch;
-
-        branch = branch();
-        return branch.isEmpty() ? branch : "-" + branch;
-    }
-
     private String branch() throws MojoExecutionException {
         return isSnapshot() ? gitBanch() : "";
     }
