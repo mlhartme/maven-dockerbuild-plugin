@@ -101,7 +101,10 @@ You can use the following place holders when specifying the image name:
 
 * `%a` expands to the artifactId of the current artifact
 * `%b` expands to the current branch when building a snapshot;
-       otherwise (i.e. when building a release) expands to the empty string
+       otherwise (i.e. when building a release) expands to the empty string;
+       (note: this is technically mandatory when using the Maven Release plugin.
+       `mvn release:perform` creates a clone for a specific commit, there's no associated
+       branch this plugin could detect)
 * `%g` expands to the groupId of the current artifact
 * `%V` expands to the version of the current artifact; if the version contains "-SNAPSHOT",
        that's replaced by a timestamp
