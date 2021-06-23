@@ -36,39 +36,54 @@ public class Placeholders {
     public String resolve(String str) throws MojoExecutionException {
         char c;
         StringBuilder result;
+        String prefix;
 
         result = new StringBuilder();
         for (int i = 0, max = str.length(); i < max; i++) {
             c = str.charAt(i);
-            if (c == '%') {
+            if (c != '%') {
+                result.append(c);
+            } else {
                 if (i + 1 >= max) {
                     throw new MojoExecutionException("invalid placeholder: " + str);
                 }
                 i++;
+                if (str.charAt(i) == '-') {
+                    prefix = "-";
+                    if (i + 1 >= max) {
+                        throw new MojoExecutionException("invalid placeholder: " + str);
+                    }
+                    i++;
+                } else {
+                    prefix = "";
+                }
                 switch (str.charAt(i)) {
                     case 'a':
-                        result.append(artifact());
+                        append(result, prefix, artifact());
                         break;
                     case 'b':
-                        result.append(branch());
-                        break;
-                    case 'B':
-                        result.append(dashBranch());
+                        append(result, prefix, branch());
                         break;
                     case 'g':
-                        result.append(group());
+                        append(result, prefix, group());
                         break;
                     case 'V':
-                        result.append(version());
+                        append(result, prefix, version());
                         break;
                     default:
                         throw new MojoExecutionException("unknown placeholder: " + str);
                 }
-            } else {
-                result.append(c);
             }
         }
         return result.toString();
+    }
+
+    private void append(StringBuilder dest, String prefix, String expanded) {
+        if (expanded.isEmpty()) {
+            return;
+        }
+        dest.append(prefix);
+        dest.append(expanded);
     }
 
     private String dashBranch() throws MojoExecutionException {

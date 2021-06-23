@@ -106,6 +106,9 @@ You can use the following place holders when specifying the image name:
 * `%V` expands to the version of the current artifact; if the version contains "-SNAPSHOT",
        that's replaced by a timestamp
 
+In addtion you can use prefixed placeholders. If you specify - e.g. - `%-b` the expanded value is
+prefixed with `-`, but only for none-empty values.
+
 ## Properties
 
 The build goal defines the following properties within Maven; use them for property arguments of Maven file filtering

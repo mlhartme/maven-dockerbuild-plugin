@@ -3,7 +3,8 @@
 ## 1.2.2 (pending)
 
 * changed `%b` placeholder to expand to empty strings when building a release
-
+* added prefixed placeholders: if you specify - e.g. - `%-b` the expanded value is 
+  prefixed with `-` unless it's empty.
 
 ## 1.2.1 (2021-05-11)
 
