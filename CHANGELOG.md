@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 (pending)
+
+* changed `%b` placeholder to expand to empty strings when building a release
+
+
 ## 1.2.1 (2021-05-11)
 
 * added `latest` parameter to automatically create a local latest tag; not that this tag will never be deployed by the plugin,

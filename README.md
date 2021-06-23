@@ -95,6 +95,17 @@ Example: an argument
 copies that war artifact into the Dockerbuild context an sets the `war` argument to the path within the context.
 
 
+## Image Placeholders
+
+You can use the following place holders when specifying the image name:
+
+* `%a` expands to the artifactId of the current artifact
+* `%b` expands to the current branch when building a snapshot;
+       otherwise (i.e. when building a release) expands to the empty string
+* `%g` expands to the groupId of the current artifact
+* `%V` expands to the version of the current artifact; if the version contains "-SNAPSHOT",
+       that's replaced by a timestamp
+
 ## Properties
 
 The build goal defines the following properties within Maven; use them for property arguments of Maven file filtering

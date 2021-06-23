@@ -52,6 +52,9 @@ public class Placeholders {
                     case 'b':
                         result.append(branch());
                         break;
+                    case 'B':
+                        result.append(dashBranch());
+                        break;
                     case 'g':
                         result.append(group());
                         break;
@@ -68,7 +71,18 @@ public class Placeholders {
         return result.toString();
     }
 
+    private String dashBranch() throws MojoExecutionException {
+        String branch;
+
+        branch = branch();
+        return branch.isEmpty() ? branch : "-" + branch;
+    }
+
     private String branch() throws MojoExecutionException {
+        return isSnapshot() ? gitBanch() : "";
+    }
+
+    private String gitBanch() throws MojoExecutionException {
         try {
             return sanitize(working.exec("git", "symbolic-ref", "--short", "-q", "HEAD").trim());
         } catch (Failure e) {
@@ -92,14 +106,19 @@ public class Placeholders {
         return sanitize(str);
     }
 
+    private static final String SNAPSHOT_SUFFIX = "-SNAPSHOT";
+
+    private boolean isSnapshot() {
+        return project.getVersion().endsWith(SNAPSHOT_SUFFIX);
+    }
+
     // CAUTION: this version differs from fabric8 placeholder
     private String version() {
-        final String suffix = "-SNAPSHOT";
         String str;
 
         str = project.getVersion();
-        if (str.endsWith(suffix)) {
-            str = str.substring(0, str.length() - suffix.length() + 1);
+        if (str.endsWith(SNAPSHOT_SUFFIX)) {
+            str = str.substring(0, str.length() - SNAPSHOT_SUFFIX.length() + 1);
             str = str + timestamp();
         }
         return sanitize(str);
