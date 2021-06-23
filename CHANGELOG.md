@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.2 (pending)
+## 1.2.2 (2021-06-23)
 
 * changed `%b` placeholder to expand to empty strings when building a release
 * added prefixed placeholders: if you specify - e.g. - `%-b` the expanded value is 
